@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 const VERTEX = `#version 300 es
 in vec2 a_position;
@@ -67,6 +67,7 @@ function hexRgb(value) {
 
 export function EnergyField({ active, color, intensity, light, ratio, reducedMotion }) {
   const canvasRef = useRef(null)
+  const [generation, setGeneration] = useState(0)
   const values = useRef({ active, color, intensity, light, ratio, reducedMotion })
   const wakeRef = useRef(() => {})
   useEffect(() => {
@@ -124,13 +125,23 @@ export function EnergyField({ active, color, intensity, light, ratio, reducedMot
       if (inactive < 150) frame = requestAnimationFrame(draw); else running = false
     }
     const restart = () => { if (!running) { running = true; inactive = 0; frame = requestAnimationFrame(draw) } }
+    const onContextLost = event => {
+      event.preventDefault()
+      running = false
+      cancelAnimationFrame(frame)
+    }
+    const onContextRestored = () => setGeneration(value => value + 1)
     wakeRef.current = restart
     const observer = new ResizeObserver(restart); observer.observe(canvas)
+    canvas.addEventListener('webglcontextlost', onContextLost)
+    canvas.addEventListener('webglcontextrestored', onContextRestored)
     frame = requestAnimationFrame(draw)
     return () => {
       running = false; wakeRef.current = () => {}; cancelAnimationFrame(frame); observer.disconnect()
-      gl.deleteProgram(program); gl.deleteBuffer(buffer)
+      canvas.removeEventListener('webglcontextlost', onContextLost)
+      canvas.removeEventListener('webglcontextrestored', onContextRestored)
+      if (!gl.isContextLost()) { gl.deleteProgram(program); gl.deleteBuffer(buffer) }
     }
-  }, [])
+  }, [generation])
   return <canvas ref={canvasRef} className="nrs-energy" aria-hidden="true" />
 }

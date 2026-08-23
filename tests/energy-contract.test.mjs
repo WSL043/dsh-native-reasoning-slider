@@ -20,3 +20,13 @@ test('the effect distinguishes light rendering and never fails without WebGL2', 
   assert.match(source, /canvas === null \|\| gl === null \|\| gl === undefined/)
   assert.match(source, /premultipliedAlpha:\s*true/)
 })
+
+test('the energy canvas stops cleanly on WebGL context loss and rebuilds after restoration', async () => {
+  const source = await readFile(new URL('../src/energy.jsx', import.meta.url), 'utf8')
+  assert.match(source, /webglcontextlost/)
+  assert.match(source, /event\.preventDefault\(\)/)
+  assert.match(source, /webglcontextrestored/)
+  assert.match(source, /setGeneration\(value => value \+ 1\)/)
+  assert.match(source, /removeEventListener\(['"]webglcontextlost['"]/)
+  assert.match(source, /removeEventListener\(['"]webglcontextrestored['"]/)
+})
