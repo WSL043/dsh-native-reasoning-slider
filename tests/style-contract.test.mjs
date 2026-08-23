@@ -49,3 +49,9 @@ test('custom energy colors use a single plugin variable without generic rainbow 
   assert.match(source, /\.nrs-color-control/)
   assert.doesNotMatch(source, /conic-gradient|hue-rotate/)
 })
+
+test('settings color controls expose a visible keyboard focus state', async () => {
+  const source = await readFile(new URL('../src/styles.js', import.meta.url), 'utf8')
+  assert.match(source, /\.nrs-color-control:has\(input:focus-visible\)/)
+  assert.match(source, /box-shadow:0 0 0 2px var\(--dsw-alias-border-l3\)/)
+})
