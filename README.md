@@ -19,13 +19,14 @@
 
 ## Why this plugin
 
-DSH models can advertise different reasoning-effort levels. This plugin turns
-those exact levels into a compact slider in the composer without inventing
-unsupported capabilities or changing provider routing.
+DSH models can advertise different reasoning-effort levels. This plugin keeps
+the composer to two small pills—model and effort—and opens the exact advertised
+levels in a compact slider only when you need it. It does not invent unsupported
+capabilities or change provider routing.
 
 - **Model-aware:** uses only the levels reported by the selected model.
 - **Efficient:** dragging is local preview; DSH receives one selection on release.
-- **Native:** follows DSH colors, spacing, menus, and model-directory contracts.
+- **Native:** separates model selection from a 28 px effort pill and follows DSH tokens and contracts.
 - **Accessible:** keyboard input works and reduced-motion disables animation.
 - **Private:** no credentials, account access, telemetry, or plugin-owned network calls.
 
@@ -36,7 +37,7 @@ Choose the presentation in **Settings -> General -> Reasoning control**:
 | Mode | Behavior |
 | --- | --- |
 | **Official** | Restores DSH's unmodified model selector |
-| **Native** | Adds a quiet, compact reasoning slider |
+| **Native** | Adds a quiet effort pill with a compact popover slider |
 | **Energy** | Adds a brief Canvas effect while dragging and settling |
 
 The plugin market remains the place to install, update, disable, or remove the

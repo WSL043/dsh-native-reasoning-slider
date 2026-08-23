@@ -13,3 +13,12 @@ test('the compact control keeps motion optional and the effect transient', async
   assert.match(source, /prefers-reduced-motion:reduce/)
   assert.match(source, /\.nrs-effort\.is-max\.is-active::after/)
 })
+
+test('the composer stays one row and the effort popover is compact', async () => {
+  const source = await readFile(new URL('../src/styles.js', import.meta.url), 'utf8')
+  assert.match(source, /\.nrs-triggers\{[^}]*display:flex[^}]*height:28px/)
+  assert.match(source, /\.nrs-model-trigger,\.nrs-effort-trigger\{[^}]*height:28px/)
+  assert.match(source, /\.nrs-effort-popover\{[^}]*bottom:calc\(100% \+ 8px\)/)
+  assert.match(source, /\.nrs-effort\{[^}]*padding:8px/)
+  assert.doesNotMatch(source, /\.nrs-effort-head/)
+})

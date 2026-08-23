@@ -27,6 +27,15 @@ test('dragging previews locally and commits through the DSH selection contract',
   assert.doesNotMatch(client, /onInput=\{[^}]*select\(/s)
 })
 
+test('model and effort use separate compact triggers and popovers', async () => {
+  const client = await readFile(clientPath, 'utf8')
+  assert.match(client, /className="nrs-model-trigger"/)
+  assert.match(client, /className="nrs-effort-trigger"/)
+  assert.match(client, /className="nrs-effort-popover"/)
+  assert.match(client, /setOpen\([^\n]*['"]effort['"][^\n]*\)/)
+  assert.doesNotMatch(client, /<span className="nrs-trigger-effort"/)
+})
+
 test('energy rendering has reduced-motion and transient lifecycle gates', async () => {
   const client = await readFile(clientPath, 'utf8')
   assert.match(client, /prefers-reduced-motion:\s*reduce/)
@@ -39,6 +48,8 @@ test('the replacement model menu preserves keyboard escape and focus movement', 
   const client = await readFile(clientPath, 'utf8')
   assert.match(client, /event\.key\s*===\s*['"]Escape['"]/)
   assert.match(client, /event\.key\s*===\s*['"]ArrowDown['"]/)
-  assert.match(client, /triggerRef\.current\?\.focus\(\)/)
+  assert.match(client, /modelTriggerRef/)
+  assert.match(client, /effortTriggerRef/)
+  assert.match(client, /trigger\.current\?\.focus\(\)/)
   assert.match(client, /onKeyDown=\{onRootKeyDown\}/)
 })

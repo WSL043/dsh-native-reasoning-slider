@@ -9,7 +9,6 @@ import {
 import {
   IconCheckOutline16,
   IconChevronDownOutline14,
-  IconChevronRightOutline14,
   IconWarningOutline16,
   Toast,
 } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -162,7 +161,6 @@ function EffortSlider({ current, reasoning, select, busy, mode, onFailure, t }) 
   const currentLabel = snapped?.name ?? effective ?? ''
   return (
     <section className={`nrs-effort ${mode === 'energy' ? 'is-energy' : ''} ${active ? 'is-active' : ''} ${preview >= 99 ? 'is-max' : ''}`} style={{ '--nrs-progress': `${preview}%` }}>
-      <div className="nrs-effort-head"><span className="nrs-effort-title">{t('effort')}</span><span className="nrs-effort-current">{currentLabel}</span></div>
       <div className="nrs-levels">
         {efforts.map(entry => <button type="button" className={`nrs-level ${snapped?.id === entry.id ? 'is-current' : ''}`} key={entry.id} disabled={busy} onClick={() => { void choose(entry) }}>{entry.name}</button>)}
       </div>
@@ -190,17 +188,17 @@ function ModelSliderSelect({ locked, available, directory, load, select, t }) {
     () => directory.getSnapshot(),
   )
   const mode = useSyncExternalStore(modeStore.subscribe, modeStore.getSnapshot)
-  const [open, setOpen] = useState(false)
-  const [pane, setPane] = useState('root')
+  const [open, setOpen] = useState(null)
   const [toast, setToast] = useState(null)
   const rootRef = useRef(null)
-  const triggerRef = useRef(null)
+  const modelTriggerRef = useRef(null)
+  const effortTriggerRef = useRef(null)
   const itemRefs = useRef([])
   const id = useId()
   useEffect(() => { if (available) load() }, [available, load])
   useEffect(() => {
     if (!open) return undefined
-    const closeOutside = event => { if (!rootRef.current?.contains(event.target)) setOpen(false) }
+    const closeOutside = event => { if (!rootRef.current?.contains(event.target)) setOpen(null) }
     document.addEventListener('mousedown', closeOutside)
     return () => document.removeEventListener('mousedown', closeOutside)
   }, [open])
@@ -213,9 +211,9 @@ function ModelSliderSelect({ locked, available, directory, load, select, t }) {
   const modelLabel = currentChoice?.model.name ?? t('selectModel')
   const busy = state.status === 'selecting'
   const close = (restoreFocus = false) => {
-    setOpen(false)
-    setPane('root')
-    if (restoreFocus) queueMicrotask(() => triggerRef.current?.focus())
+    const trigger = open === 'effort' ? effortTriggerRef : modelTriggerRef
+    setOpen(null)
+    if (restoreFocus) queueMicrotask(() => trigger.current?.focus())
   }
   const moveFocus = offset => {
     const items = itemRefs.current.filter(Boolean)
@@ -225,14 +223,12 @@ function ModelSliderSelect({ locked, available, directory, load, select, t }) {
     items[next]?.focus()
   }
   const onRootKeyDown = event => {
-    if (event.key === 'Escape' && open) {
+    if (event.key === 'Escape' && open !== null) {
       event.preventDefault()
-      if (pane !== 'root') setPane('root')
-      else close(true)
+      close(true)
       return
     }
-    if (!open) return
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    if (open === 'models' && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
       event.preventDefault()
       moveFocus(event.key === 'ArrowDown' ? 1 : -1)
     }
@@ -253,16 +249,19 @@ function ModelSliderSelect({ locked, available, directory, load, select, t }) {
     itemIndex += 1
     return node => { itemRefs.current[at] = node }
   }
+  const efforts = advertisedEfforts(reasoning)
+  const hasEfforts = state.current !== null && efforts.length >= 2
   return (
     <div ref={rootRef} className="nrs-root" onKeyDown={onRootKeyDown} onBlur={onBlur}>
-      <button ref={triggerRef} type="button" className="nrs-trigger" disabled={locked} aria-label={[modelLabel, effortLabel].filter(Boolean).join(' · ')} aria-haspopup="menu" aria-expanded={open} aria-controls={open ? `${id}-menu` : undefined} onClick={() => { if (open) close(); else { setOpen(true); load() } }}>
-        <span className="nrs-trigger-model">{modelLabel}</span>{effortLabel ? <span className="nrs-trigger-effort">{effortLabel}</span> : null}<IconChevronDownOutline14 className={`nrs-chevron ${open ? 'is-open' : ''}`} />
-      </button>
-      {open ? <div id={`${id}-menu`} className="nrs-menu" role="menu" aria-busy={state.status === 'loading' || busy}>
-        {pane === 'root' ? <>
-          <button ref={itemRef()} type="button" role="menuitem" className="nrs-cell" onClick={() => setPane('models')}><span className="nrs-cell-label">{t('model')}</span><span className="nrs-cell-value">{modelLabel}</span><IconChevronRightOutline14 className="nrs-cell-chevron" /></button>
-          <EffortSlider current={state.current} reasoning={reasoning} select={select} busy={busy} mode={mode} onFailure={failure} t={t} />
-        </> : <>
+      <div className="nrs-triggers">
+        <button ref={modelTriggerRef} type="button" className="nrs-model-trigger" disabled={locked} aria-label={modelLabel} aria-haspopup="menu" aria-expanded={open === 'models'} aria-controls={open === 'models' ? `${id}-models` : undefined} onClick={() => { if (open === 'models') close(); else { setOpen('models'); load() } }}>
+          <span className="nrs-trigger-model">{modelLabel}</span><IconChevronDownOutline14 className={`nrs-chevron ${open === 'models' ? 'is-open' : ''}`} />
+        </button>
+        {hasEfforts ? <button ref={effortTriggerRef} type="button" className="nrs-effort-trigger" disabled={locked || busy} aria-label={`${t('effort')} · ${effortLabel}`} aria-haspopup="dialog" aria-expanded={open === 'effort'} aria-controls={open === 'effort' ? `${id}-effort` : undefined} onClick={() => setOpen(open === 'effort' ? null : 'effort')}>
+          <span>{effortLabel}</span><IconChevronDownOutline14 className={`nrs-chevron ${open === 'effort' ? 'is-open' : ''}`} />
+        </button> : null}
+      </div>
+      {open === 'models' ? <div id={`${id}-models`} className="nrs-menu" role="menu" aria-busy={state.status === 'loading' || busy}>
           {state.status === 'loading' ? <div className="nrs-status">{t('loading')}</div> : null}
           {state.error !== null ? <div className="nrs-error"><span>{state.error}</span><button type="button" className="nrs-retry" onClick={load}>{t('retry')}</button></div> : null}
           {state.failures.map(failure => <div className="nrs-error" key={failure.id}><span>{t('groupFailed', { name: failure.name, message: failure.message })}</span><button type="button" className="nrs-retry" onClick={load}>{t('retry')}</button></div>)}
@@ -271,7 +270,9 @@ function ModelSliderSelect({ locked, available, directory, load, select, t }) {
             return <button ref={itemRef()} type="button" role="menuitemradio" aria-checked={selected} className="nrs-option" key={model.id} disabled={busy} onClick={() => { void chooseModel(group, model) }}><span className="nrs-option-copy"><span className="nrs-option-name">{model.name}</span>{model.description ? <span className="nrs-option-description">{model.description}</span> : null}</span><span className="nrs-check">{selected ? <IconCheckOutline16 /> : null}</span></button>
           })}</section>)}</div>
           {state.status === 'ready' && choices.length === 0 ? <div className="nrs-empty">{t('noModels')}</div> : null}
-        </>}
+      </div> : null}
+      {open === 'effort' ? <div id={`${id}-effort`} className="nrs-effort-popover" role="dialog" aria-label={t('effort')}>
+        <EffortSlider current={state.current} reasoning={reasoning} select={select} busy={busy} mode={mode} onFailure={failure} t={t} />
       </div> : null}
       {toast ? <Toast key={toast.id} text={toast.text} icon={<IconWarningOutline16 />} anchor={rootRef.current?.closest('[data-composer-card]') ?? null} onDone={() => setToast(null)} /> : null}
     </div>
