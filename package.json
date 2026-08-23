@@ -1,11 +1,13 @@
 {
   "name": "dsh-native-reasoning-slider",
   "version": "0.1.0",
-  "description": "A native, model-aware reasoning effort slider for DeepSeek Harness",
+  "description": "A native, model-aware effort slider with polished light, dark, and per-model colors for DeepSeek Harness",
   "keywords": [
     "dsh-plugin",
     "deepseek-harness",
     "reasoning-effort",
+    "effort-slider",
+    "claude-inspired",
     "thinking",
     "model-selector"
   ],

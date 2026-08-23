@@ -2,9 +2,13 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import {
+  DEFAULT_COLORS,
   MODES,
   advertisedEfforts,
+  modelColorKey,
+  normalizeAppearance,
   normalizeMode,
+  resolveColors,
   snapEffort,
   shouldAnimate,
 } from '../src/policy.js'
@@ -54,4 +58,51 @@ test('energy animation is transient and respects reduced-motion', () => {
   assert.equal(shouldAnimate({ mode: 'energy', reducedMotion: false, active: false }), false)
   assert.equal(shouldAnimate({ mode: 'native', reducedMotion: false, active: true }), false)
   assert.equal(shouldAnimate({ mode: 'energy', reducedMotion: true, active: true }), false)
+})
+
+test('appearance preferences support one palette or model-specific palettes', () => {
+  const global = normalizeAppearance({
+    scope: 'global',
+    global: { light: '#275fc7', dark: '#8c72ff' },
+    models: {},
+  })
+  assert.deepEqual(resolveColors(global, 'openai', 'gpt-5'), global.global)
+
+  const key = modelColorKey('deepseek', 'DeepSeek-V4-Flash')
+  const perModel = normalizeAppearance({
+    scope: 'model',
+    global: global.global,
+    models: { [key]: { light: '#087f73', dark: '#54d8c5' } },
+  })
+  assert.deepEqual(resolveColors(perModel, 'deepseek', 'DeepSeek-V4-Flash'), perModel.models[key])
+  assert.deepEqual(resolveColors(perModel, 'openai', 'gpt-5'), perModel.global)
+})
+
+test('appearance normalization keeps distinct polished theme defaults and rejects unsafe values', () => {
+  assert.notEqual(DEFAULT_COLORS.light, DEFAULT_COLORS.dark)
+  const normalized = normalizeAppearance({
+    scope: 'invalid',
+    global: { light: 'red', dark: '#ABCDEF' },
+    models: {
+      [modelColorKey('provider', 'valid')]: { light: '#123456', dark: '#654321' },
+      [modelColorKey('provider', 'invalid')]: { light: 'transparent', dark: '#00000000' },
+    },
+  })
+  assert.equal(normalized.scope, 'global')
+  assert.equal(normalized.global.light, DEFAULT_COLORS.light)
+  assert.equal(normalized.global.dark, '#abcdef')
+  assert.equal(Object.keys(normalized.models).length, 1)
+})
+
+test('model color keys are collision-safe and bounded', () => {
+  assert.notEqual(modelColorKey('a/b', 'c'), modelColorKey('a', 'b/c'))
+  const models = Object.fromEntries(Array.from({ length: 80 }, (_, index) => [
+    modelColorKey('provider', `model-${index}`),
+    { light: '#123456', dark: '#654321' },
+  ]))
+  assert.equal(Object.keys(normalizeAppearance({ scope: 'model', models }).models).length, 64)
+  assert.deepEqual(normalizeAppearance({ scope: 'model', models: Object.fromEntries([
+    ['__proto__', { light: '#123456', dark: '#654321' }],
+    ['not-json', { light: '#123456', dark: '#654321' }],
+  ]) }).models, {})
 })

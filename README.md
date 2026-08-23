@@ -1,8 +1,8 @@
 <div align="center">
 
-# DSH Native Reasoning Slider
+# DSH Native Effort Slider
 
-**A compact, model-aware reasoning control for DeepSeek Harness**
+**A compact, model-aware effort control for DeepSeek Harness**
 
 [![CI](https://github.com/WSL043/dsh-native-reasoning-slider/actions/workflows/ci.yml/badge.svg)](https://github.com/WSL043/dsh-native-reasoning-slider/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/dsh-native-reasoning-slider?logo=npm&label=npm)](https://www.npmjs.com/package/dsh-native-reasoning-slider)
@@ -27,6 +27,7 @@ capabilities or change provider routing.
 - **Model-aware:** uses only the levels reported by the selected model.
 - **Efficient:** dragging is local preview; DSH receives one selection on release.
 - **Native:** separates model selection from a 28 px effort pill and follows DSH tokens and contracts.
+- **Personal:** one light/dark palette for every model, or a separate palette for each model.
 - **Accessible:** keyboard input works and reduced-motion disables animation.
 - **Private:** no credentials, account access, telemetry, or plugin-owned network calls.
 
@@ -38,10 +39,16 @@ Choose the presentation in **Settings -> General -> Reasoning control**:
 | --- | --- |
 | **Official** | Restores DSH's unmodified model selector |
 | **Native** | Adds a quiet effort pill with a compact popover slider |
-| **Energy** | Adds a brief Canvas effect while dragging and settling |
+| **Energy** | Adds a brief, independently implemented WebGL cell-and-bloom effect while dragging and settling |
 
 The plugin market remains the place to install, update, disable, or remove the
 plugin. The setting changes presentation without installing duplicate plugins.
+
+Energy mode starts with restrained blue in light appearance and violet in dark
+appearance. Both colors are editable. Choose **All models** for one palette, or
+**Per model** and set the selected model's two swatches directly in its effort
+popover. The motion is Claude-inspired, but the implementation and model
+contract are provider-neutral.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/WSL043/dsh-native-reasoning-slider/main/docs/assets/mode-settings-en.png" width="820" alt="Official, Native, and Energy presentation modes in DSH Settings">

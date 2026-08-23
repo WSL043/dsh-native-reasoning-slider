@@ -107,8 +107,9 @@ jobs:
           ## What's new
 
           - Adds separate compact model and effort pills to the DSH composer.
-          - Opens the model's exact advertised effort levels in a small slider above the composer.
-          - Includes Official, Native, and Energy presentation modes with reduced-motion support.
+          - Opens the model's exact advertised effort levels in a small native popover.
+          - Adds polished light and dark Energy colors, with global or per-model palettes.
+          - Uses an independent WebGL effect with idle shutdown, graceful fallback, and reduced-motion support.
 
           ## Install
 
@@ -121,8 +122,9 @@ jobs:
           ## 中文
 
           - 输入框中使用独立、紧凑的模型与推理强度胶囊。
-          - 点击强度胶囊后，在输入框上方展开当前模型真实提供的档位。
-          - 提供官方、原生和能量三种外观，并遵循系统的减少动态效果设置。
+          - 点击强度胶囊后，展开当前模型真实提供的档位。
+          - 能量模式支持浅色/深色默认配色、统一配色和按模型配色。
+          - 独立 WebGL 效果会在空闲时停止，并支持降级与系统减少动态效果设置。
 
           ```sh
           dsh plugin --profile web add dsh-native-reasoning-slider
