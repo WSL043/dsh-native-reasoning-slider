@@ -65,6 +65,17 @@ test('appearance preferences are local, theme-aware, and support per-model color
   assert.doesNotMatch(client, /fetch\(|XMLHttpRequest|authorization|token/i)
 })
 
+test('color customization belongs to settings rather than the composer effort popover', async () => {
+  const client = await readFile(clientPath, 'utf8')
+  const effortSlider = client.slice(client.indexOf('function EffortSlider'), client.indexOf('function ModelSliderSelect'))
+  const pluginSettings = client.slice(client.indexOf('function PluginSettings'), client.indexOf('export function apply'))
+
+  assert.doesNotMatch(effortSlider, /ColorInput|setModel|nrs-model-colors/)
+  assert.match(pluginSettings, /appearanceStore\.setModel/)
+  assert.match(pluginSettings, /selectedPaletteModel/)
+  assert.match(pluginSettings, /modelColorChoices/)
+})
+
 test('effort popover prefers below and flips above only when viewport space requires it', async () => {
   const client = await readFile(clientPath, 'utf8')
   assert.match(client, /setEffortSide\(below >= panel\.offsetHeight \|\| below >= above \? ['"]down['"] : ['"]up['"]\)/)

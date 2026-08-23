@@ -45,10 +45,11 @@ The plugin market remains the place to install, update, disable, or remove the
 plugin. The setting changes presentation without installing duplicate plugins.
 
 Energy mode starts with restrained blue in light appearance and violet in dark
-appearance. Both colors are editable. Choose **All models** for one palette, or
-**Per model** and set the selected model's two swatches directly in its effort
-popover. The motion is Claude-inspired, but the implementation and model
-contract are provider-neutral.
+appearance. Both colors are editable from DSH Settings. Choose **All models**
+for one palette, or **Per model** and select each model's light and dark colors
+in the settings page. The composer popover stays focused on effort control.
+The motion is Claude-inspired, but the implementation and model contract are
+provider-neutral.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/WSL043/dsh-native-reasoning-slider/main/docs/assets/mode-settings-en.png" width="820" alt="Official, Native, and Energy presentation modes in DSH Settings">

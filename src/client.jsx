@@ -34,6 +34,7 @@ const STORAGE_KEY = 'dsh-native-reasoning-slider.mode'
 const APPEARANCE_KEY = 'dsh-native-reasoning-slider.appearance.v1'
 const listeners = new Set()
 const appearanceListeners = new Set()
+const modelChoiceListeners = new Set()
 
 function storedMode() {
   try { return normalizeMode(window.localStorage.getItem(STORAGE_KEY)) } catch { return 'energy' }
@@ -80,13 +81,26 @@ export const appearanceStore = {
   },
 }
 
+let modelColorChoices = []
+export const modelChoicesStore = {
+  getSnapshot: () => modelColorChoices,
+  subscribe(listener) { modelChoiceListeners.add(listener); return () => modelChoiceListeners.delete(listener) },
+  set(choices) {
+    const next = choices.map(choice => ({ ...choice }))
+    if (JSON.stringify(next) === JSON.stringify(modelColorChoices)) return
+    modelColorChoices = next
+    modelChoiceListeners.forEach(listener => listener())
+  },
+}
+
 const LOCALES = {
   en: {
     settingTitle: 'Reasoning control', settingDescription: 'Use the official menu, a quiet native slider, or transient energy effects.',
     official: 'Official', native: 'Native', energy: 'Energy', model: 'Model', effort: 'Effort', retry: 'Retry',
     colorAssignment: 'Energy colors', colorDescription: 'Use one palette for every model, or remember a palette for each model.',
     allModels: 'All models', eachModel: 'Per model', lightColor: 'Light appearance', darkColor: 'Dark appearance',
-    modelColors: 'Model colors', modelColorsDescription: 'This palette applies to the selected model.',
+    allModelColors: 'Default palette', allModelColorsDescription: 'Used by every model unless per-model colors are enabled.',
+    modelColors: 'Model palette', modelColorsDescription: 'Choose a model, then set its light and dark colors here.',
     loading: 'Loading models…', noModels: 'No available models.', noEfforts: 'This model does not expose reasoning effort levels.',
     selectionFailed: 'The setting was not saved. {message}', groupFailed: '{name}: {message}', selectModel: 'Select model',
   },
@@ -95,7 +109,8 @@ const LOCALES = {
     official: '官方', native: '原生', energy: '能量', model: '模型', effort: '推理强度', retry: '重试',
     colorAssignment: '能量配色', colorDescription: '所有模型使用一套配色，或分别记住每个模型的配色。',
     allModels: '全部模型', eachModel: '按模型', lightColor: '浅色外观', darkColor: '深色外观',
-    modelColors: '模型配色', modelColorsDescription: '这组配色仅应用于当前模型。',
+    allModelColors: '默认配色', allModelColorsDescription: '未启用按模型配色时，所有模型使用这组颜色。',
+    modelColors: '模型配色', modelColorsDescription: '先选择模型，再在这里设置它的浅色和深色配色。',
     loading: '正在加载模型…', noModels: '没有可用模型。', noEfforts: '当前模型未提供推理强度档位。',
     selectionFailed: '设置未保存。{message}', groupFailed: '{name}：{message}', selectModel: '选择模型',
   },
@@ -193,7 +208,6 @@ function EffortSlider({ current, reasoning, select, busy, mode, onFailure, t }) 
           onBlur={event => { if (dragging) void commitAt(Number(event.currentTarget.value)) }}
         />
       </div>
-      {mode === 'energy' && appearance.scope === 'model' ? <div className="nrs-model-colors"><span className="nrs-model-colors-copy"><strong>{t('modelColors')}</strong><small>{t('modelColorsDescription')}</small></span><ColorInput label={t('lightColor')} value={colors.light} onChange={value => appearanceStore.setModel(current.provider, current.model, 'light', value)} /><ColorInput label={t('darkColor')} value={colors.dark} onChange={value => appearanceStore.setModel(current.provider, current.model, 'dark', value)} /></div> : null}
     </section>
   )
 }
@@ -236,6 +250,16 @@ function ModelSliderSelect({ locked, available, directory, load, select, t }) {
     return () => { window.removeEventListener('resize', place); window.removeEventListener('scroll', place, true) }
   }, [open])
   const choices = useMemo(() => state.groups.flatMap(group => group.models.map(model => ({ group, model }))), [state.groups])
+  useEffect(() => {
+    if (!available) { modelChoicesStore.set([]); return }
+    modelChoicesStore.set(choices.map(({ group, model }) => ({
+      id: modelColorKey(group.id, model.id),
+      label: model.name,
+      provider: group.id,
+      model: model.id,
+      current: state.current?.provider === group.id && state.current?.model === model.id,
+    })))
+  }, [available, choices, state.current?.provider, state.current?.model])
   if (!available) return null
   const currentChoice = state.current === null ? undefined : choices.find(entry => entry.group.id === state.current.provider && entry.model.id === state.current.model)
   const reasoning = currentChoice?.model.reasoning
@@ -312,8 +336,8 @@ function ModelSliderSelect({ locked, available, directory, load, select, t }) {
   )
 }
 
-function ColorInput({ label, onChange, value }) {
-  return <label className="nrs-color-control" title={label}><input type="color" value={value} aria-label={label} onChange={event => onChange(event.currentTarget.value)} /><span aria-hidden="true" style={{ background: value }} /></label>
+function ColorInput({ disabled = false, label, onChange, value }) {
+  return <label className={`nrs-color-control ${disabled ? 'is-disabled' : ''}`} title={label}><input type="color" value={value} aria-label={label} disabled={disabled} onChange={event => onChange(event.currentTarget.value)} /><span aria-hidden="true" style={{ background: value }} /></label>
 }
 
 function SettingsMenu({ items, onSelect, selected, t }) {
@@ -321,13 +345,32 @@ function SettingsMenu({ items, onSelect, selected, t }) {
   return <Menu open={open} align="end" side="bottom" portal compact selectedId={selected} items={items.map(entry => ({ id: entry, label: t(entry) }))} onSelect={entry => { onSelect(entry); setOpen(false) }} onClose={() => setOpen(false)} anchor={<button type="button" className="nrs-mode-picker" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(value => !value)}><span>{t(selected)}</span><IconChevronDownOutline14 className={`nrs-chevron ${open ? 'is-open' : ''}`} /></button>} />
 }
 
+function ModelSettingsMenu({ choices, onSelect, selected, t }) {
+  const [open, setOpen] = useState(false)
+  const selectedChoice = choices.find(choice => choice.id === selected)
+  return <Menu open={open} align="end" side="bottom" portal compact selectedId={selected} items={choices.map(choice => ({ id: choice.id, label: choice.label }))} onSelect={entry => { onSelect(entry); setOpen(false) }} onClose={() => setOpen(false)} anchor={<button type="button" className="nrs-mode-picker nrs-model-picker" disabled={choices.length === 0} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(value => !value)}><span>{selectedChoice?.label ?? t('selectModel')}</span><IconChevronDownOutline14 className={`nrs-chevron ${open ? 'is-open' : ''}`} /></button>} />
+}
+
 function PluginSettings({ t }) {
   const mode = useSyncExternalStore(modeStore.subscribe, modeStore.getSnapshot)
   const appearance = useSyncExternalStore(appearanceStore.subscribe, appearanceStore.getSnapshot)
+  const modelColorChoices = useSyncExternalStore(modelChoicesStore.subscribe, modelChoicesStore.getSnapshot)
   const scope = appearance.scope === 'model' ? 'eachModel' : 'allModels'
+  const [selectedPaletteModel, setSelectedPaletteModel] = useState('')
+  useEffect(() => {
+    if (modelColorChoices.some(choice => choice.id === selectedPaletteModel)) return
+    setSelectedPaletteModel(modelColorChoices.find(choice => choice.current)?.id ?? modelColorChoices[0]?.id ?? '')
+  }, [modelColorChoices, selectedPaletteModel])
+  const selectedChoice = modelColorChoices.find(choice => choice.id === selectedPaletteModel)
+  const palette = selectedChoice === undefined ? appearance.global : resolveColors({ ...appearance, scope: 'model' }, selectedChoice.provider, selectedChoice.model)
+  const setPaletteColor = (theme, value) => {
+    if (appearance.scope === 'model' && selectedChoice !== undefined) appearanceStore.setModel(selectedChoice.provider, selectedChoice.model, theme, value)
+    else appearanceStore.setGlobal(theme, value)
+  }
   return <>
     <div className="nrs-mode-row"><div className="nrs-mode-copy"><div className="nrs-mode-title">{t('settingTitle')}</div><div className="nrs-mode-description">{t('settingDescription')}</div></div><SettingsMenu items={['official', 'native', 'energy']} selected={mode} onSelect={modeStore.set} t={t} /></div>
-    <div className="nrs-mode-row"><div className="nrs-mode-copy"><div className="nrs-mode-title">{t('colorAssignment')}</div><div className="nrs-mode-description">{t('colorDescription')}</div></div><div className="nrs-setting-actions"><ColorInput label={t('lightColor')} value={appearance.global.light} onChange={value => appearanceStore.setGlobal('light', value)} /><ColorInput label={t('darkColor')} value={appearance.global.dark} onChange={value => appearanceStore.setGlobal('dark', value)} /><SettingsMenu items={['allModels', 'eachModel']} selected={scope} onSelect={entry => appearanceStore.setScope(entry === 'eachModel' ? 'model' : 'global')} t={t} /></div></div>
+    <div className="nrs-mode-row"><div className="nrs-mode-copy"><div className="nrs-mode-title">{t('colorAssignment')}</div><div className="nrs-mode-description">{t('colorDescription')}</div></div><SettingsMenu items={['allModels', 'eachModel']} selected={scope} onSelect={entry => appearanceStore.setScope(entry === 'eachModel' ? 'model' : 'global')} t={t} /></div>
+    <div className="nrs-mode-row"><div className="nrs-mode-copy"><div className="nrs-mode-title">{t(appearance.scope === 'model' ? 'modelColors' : 'allModelColors')}</div><div className="nrs-mode-description">{t(appearance.scope === 'model' ? 'modelColorsDescription' : 'allModelColorsDescription')}</div></div><div className="nrs-setting-actions">{appearance.scope === 'model' ? <ModelSettingsMenu choices={modelColorChoices} selected={selectedPaletteModel} onSelect={setSelectedPaletteModel} t={t} /> : null}<ColorInput disabled={appearance.scope === 'model' && selectedChoice === undefined} label={t('lightColor')} value={palette.light} onChange={value => setPaletteColor('light', value)} /><ColorInput disabled={appearance.scope === 'model' && selectedChoice === undefined} label={t('darkColor')} value={palette.dark} onChange={value => setPaletteColor('dark', value)} /></div></div>
   </>
 }
 

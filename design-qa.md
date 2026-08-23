@@ -18,7 +18,7 @@
 
 - The control stays inside the DSH composer and uses the native menu surface, type, dividers, shadows, spacing, and setting-row rhythm.
 - The formal control intentionally removes Claude's surrounding black product card and Faster/Smarter copy; those elements would conflict with DSH's compact model contract. It retains the selected visual core: cellular energy progression, bright endpoint, and white rounded thumb.
-- At 390 x 760, the popover moves right of the collapsed sidebar, all four labels remain visible, the white thumb keeps edge breathing room, and the per-model footer remains inside the viewport.
+- At 390 x 760, the popover moves right of the collapsed sidebar, all four labels remain visible, and the white thumb keeps edge breathing room. Persistent color controls stay out of the composer and live in Settings.
 
 ## Focused comparison evidence
 
@@ -42,7 +42,7 @@
 - Selected Low and Max through DSH's model-selection contract; the composer trigger updated to the committed value.
 - Escape closed the popover and restored the compact composer state.
 - Official mode removed the replacement effort control; Native restored it; Energy restored the WebGL presentation.
-- Global/per-model scope switched and light/dark color controls rendered in both themes.
+- Global/per-model scope switched; model selection plus light/dark color controls rendered in Settings in both themes, with no color controls in the composer popover.
 - Fresh official DSH browser sessions reported no console errors or warnings during stable interaction.
 
 ## Findings
