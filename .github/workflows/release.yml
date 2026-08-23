@@ -1,0 +1,180 @@
+name: Release and publish
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+      needed: ${{ steps.existing.outputs.needed }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Require main and resolve version
+        id: version
+        shell: bash
+        run: |
+          test "$GITHUB_REF" = 'refs/heads/main'
+          version="$(node -p "require('./package.json').version")"
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+      - name: Protect immutable releases
+        id: existing
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+        shell: bash
+        run: |
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "$RELEASE_TAG is already published; immutable assets will not be replaced."
+            echo 'needed=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'needed=true' >> "$GITHUB_OUTPUT"
+          fi
+
+  verify:
+    needs: preflight
+    if: needs.preflight.outputs.needed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run check
+      - name: Preserve the accepted package
+        shell: bash
+        run: |
+          mkdir -p .candidate
+          cp .artifacts/dsh-native-reasoning-slider-${{ needs.preflight.outputs.version }}.tgz .candidate/dsh-native-reasoning-slider.tgz
+          test -s .candidate/dsh-native-reasoning-slider.tgz
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-candidate-${{ github.sha }}
+          path: .candidate/dsh-native-reasoning-slider.tgz
+          if-no-files-found: error
+
+  windows:
+    needs: preflight
+    if: needs.preflight.outputs.needed == 'true'
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run check
+
+  release:
+    needs: [preflight, verify, windows]
+    if: needs.preflight.outputs.needed == 'true' && needs.verify.result == 'success' && needs.windows.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-candidate-${{ github.sha }}
+          path: .candidate
+      - name: Write user-facing release notes
+        shell: bash
+        run: |
+          cat > .candidate/release.md <<'NOTES'
+          ## What's new
+
+          - Adds separate compact model and effort pills to the DSH composer.
+          - Opens the model's exact advertised effort levels in a small slider above the composer.
+          - Includes Official, Native, and Energy presentation modes with reduced-motion support.
+
+          ## Install
+
+          ```sh
+          dsh plugin --profile web add dsh-native-reasoning-slider
+          ```
+
+          Restart DSH after installation.
+
+          ## 中文
+
+          - 输入框中使用独立、紧凑的模型与推理强度胶囊。
+          - 点击强度胶囊后，在输入框上方展开当前模型真实提供的档位。
+          - 提供官方、原生和能量三种外观，并遵循系统的减少动态效果设置。
+
+          ```sh
+          dsh plugin --profile web add dsh-native-reasoning-slider
+          ```
+
+          安装后请重启 DSH。
+          NOTES
+      - name: Publish immutable GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.preflight.outputs.tag }}
+        shell: bash
+        run: |
+          gh release create "$RELEASE_TAG" .candidate/dsh-native-reasoning-slider.tgz \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "$RELEASE_TAG" \
+            --notes-file .candidate/release.md --latest
+
+  publish-npm:
+    needs: [preflight, release]
+    if: always() && needs.preflight.result == 'success' && (needs.preflight.outputs.needed == 'false' || needs.release.result == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.preflight.outputs.tag }}
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - name: Use an OIDC-capable npm CLI
+        run: npm install --global npm@12.0.2
+      - name: Download the accepted package
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.preflight.outputs.tag }}
+        shell: bash
+        run: |
+          mkdir -p .release-artifact
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern dsh-native-reasoning-slider.tgz --dir .release-artifact
+      - name: Publish with npm Trusted Publishing
+        shell: bash
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          if npm view "dsh-native-reasoning-slider@$version" version >/dev/null 2>&1; then
+            echo "dsh-native-reasoning-slider@$version is already published."
+          else
+            npm publish .release-artifact/dsh-native-reasoning-slider.tgz --access public
+          fi
