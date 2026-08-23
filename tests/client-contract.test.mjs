@@ -29,6 +29,16 @@ test('dragging previews locally and commits through the DSH selection contract',
   assert.doesNotMatch(client, /onInput=\{[^}]*select\(/s)
 })
 
+test('keyboard input moves between advertised effort levels instead of decimal range steps', async () => {
+  const client = await readFile(clientPath, 'utf8')
+  assert.match(client, /const onSliderKeyDown = event =>/)
+  assert.match(client, /ArrowRight['"], ['"]ArrowUp/)
+  assert.match(client, /Math\.min\(efforts\.length - 1, currentEffortIndex \+ 1\)/)
+  assert.match(client, /event\.preventDefault\(\)/)
+  assert.match(client, /onKeyDown=\{onSliderKeyDown\}/)
+  assert.doesNotMatch(client, /onKeyUp=\{event =>/)
+})
+
 test('energy geometry is driven by the same normalized ratio as the native range input', async () => {
   const client = await readFile(clientPath, 'utf8')
   assert.match(client, /const ratio = preview \/ 100/)

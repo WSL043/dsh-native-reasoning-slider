@@ -185,6 +185,17 @@ function EffortSlider({ current, reasoning, select, busy, mode, onFailure, t }) 
     setPreview(position)
     await commitAt(position)
   }
+  const onSliderKeyDown = event => {
+    let targetIndex
+    const currentEffortIndex = Math.max(0, efforts.findIndex(entry => entry.id === snapped?.id))
+    if (['ArrowRight', 'ArrowUp', 'PageUp'].includes(event.key)) targetIndex = Math.min(efforts.length - 1, currentEffortIndex + 1)
+    else if (['ArrowLeft', 'ArrowDown', 'PageDown'].includes(event.key)) targetIndex = Math.max(0, currentEffortIndex - 1)
+    else if (event.key === 'Home') targetIndex = 0
+    else if (event.key === 'End') targetIndex = efforts.length - 1
+    else return
+    event.preventDefault()
+    void choose(efforts[targetIndex])
+  }
   const currentLabel = snapped?.name ?? effective ?? ''
   return (
     <section className={`nrs-effort ${mode === 'energy' ? 'is-energy' : ''} ${active ? 'is-active' : ''} ${preview >= 99 ? 'is-max' : ''}`} style={{ '--nrs-ratio': ratio, '--nrs-color': energyColor }}>
@@ -204,7 +215,7 @@ function EffortSlider({ current, reasoning, select, busy, mode, onFailure, t }) 
           onPointerDown={() => setDragging(true)}
           onPointerUp={event => { void commitAt(Number(event.currentTarget.value)) }}
           onPointerCancel={() => { setDragging(false); setPreview(committed) }}
-          onKeyUp={event => { if (['ArrowLeft', 'ArrowRight', 'Home', 'End', 'PageUp', 'PageDown'].includes(event.key)) void commitAt(Number(event.currentTarget.value)) }}
+          onKeyDown={onSliderKeyDown}
           onBlur={event => { if (dragging) void commitAt(Number(event.currentTarget.value)) }}
         />
       </div>
