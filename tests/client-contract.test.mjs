@@ -22,9 +22,16 @@ test('official mode removes the shadow seat while native and energy modes keep i
 test('dragging previews locally and commits through the DSH selection contract', async () => {
   const client = await readFile(clientPath, 'utf8')
   assert.match(client, /onInput=\{previewOnly\}/)
-  assert.match(client, /onPointerUp=\{commitPreview\}/)
+  assert.match(client, /onPointerUp=\{event\s*=>\s*\{\s*void commitAt\(Number\(event\.currentTarget\.value\)\)\s*\}\}/)
+  assert.doesNotMatch(client, /const commitPreview\s*=/)
   assert.match(client, /reasoningEffort:\s*effort\.id/)
   assert.doesNotMatch(client, /onInput=\{[^}]*select\(/s)
+})
+
+test('energy geometry follows the same thumb travel as the native range input', async () => {
+  const client = await readFile(clientPath, 'utf8')
+  assert.match(client, /const thumbRadius = 10 \* ratio/)
+  assert.match(client, /thumbRadius \+ normalized \* \(width - thumbRadius \* 2\)/)
 })
 
 test('model and effort use separate compact triggers and popovers', async () => {

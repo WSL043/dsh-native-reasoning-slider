@@ -22,3 +22,11 @@ test('the composer stays one row and the effort popover is compact', async () =>
   assert.match(source, /\.nrs-effort\{[^}]*padding:8px/)
   assert.doesNotMatch(source, /\.nrs-effort-head/)
 })
+
+test('the fill follows the 20px thumb center and settings remain readable in narrow panels', async () => {
+  const source = await readFile(new URL('../src/styles.js', import.meta.url), 'utf8')
+  assert.match(source, /width:calc\(10px \+ \(100% - 20px\) \* var\(--nrs-ratio\)\)/)
+  assert.match(source, /\.nrs-mode-row\{[^}]*flex-direction:column[^}]*align-items:stretch/)
+  assert.match(source, /\.nrs-mode-control\{[^}]*box-sizing:border-box[^}]*width:100%/)
+  assert.match(source, /\.nrs-mode-button\{[^}]*flex:1/)
+})

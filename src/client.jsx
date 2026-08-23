@@ -91,7 +91,9 @@ function EnergyCanvas({ progress, active, mode }) {
       const height = Math.max(1, Math.round(canvas.clientHeight * ratio))
       if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height }
       context.clearRect(0, 0, width, height)
-      const x = (Math.max(0, Math.min(100, progress)) / 100) * width
+      const normalized = Math.max(0, Math.min(100, progress)) / 100
+      const thumbRadius = 10 * ratio
+      const x = thumbRadius + normalized * (width - thumbRadius * 2)
       const color = getComputedStyle(canvas).color
       context.globalCompositeOperation = 'lighter'
       const glow = context.createRadialGradient(x, height / 2, 0, x, height / 2, height * 1.25)
@@ -151,7 +153,6 @@ function EffortSlider({ current, reasoning, select, busy, mode, onFailure, t }) 
     window.setTimeout(() => setSettling(false), 620)
     if (!accepted) { setPreview(committed); onFailure() }
   }
-  const commitPreview = () => commitAt(preview)
   const choose = async effort => {
     const index = efforts.findIndex(entry => entry.id === effort.id)
     const position = (index / (efforts.length - 1)) * 100
@@ -160,7 +161,7 @@ function EffortSlider({ current, reasoning, select, busy, mode, onFailure, t }) 
   }
   const currentLabel = snapped?.name ?? effective ?? ''
   return (
-    <section className={`nrs-effort ${mode === 'energy' ? 'is-energy' : ''} ${active ? 'is-active' : ''} ${preview >= 99 ? 'is-max' : ''}`} style={{ '--nrs-progress': `${preview}%` }}>
+    <section className={`nrs-effort ${mode === 'energy' ? 'is-energy' : ''} ${active ? 'is-active' : ''} ${preview >= 99 ? 'is-max' : ''}`} style={{ '--nrs-ratio': preview / 100 }}>
       <div className="nrs-levels">
         {efforts.map(entry => <button type="button" className={`nrs-level ${snapped?.id === entry.id ? 'is-current' : ''}`} key={entry.id} disabled={busy} onClick={() => { void choose(entry) }}>{entry.name}</button>)}
       </div>
@@ -172,10 +173,10 @@ function EffortSlider({ current, reasoning, select, busy, mode, onFailure, t }) 
           aria-label={t('effort')} aria-valuetext={currentLabel}
           onInput={previewOnly}
           onPointerDown={() => setDragging(true)}
-          onPointerUp={commitPreview}
+          onPointerUp={event => { void commitAt(Number(event.currentTarget.value)) }}
           onPointerCancel={() => { setDragging(false); setPreview(committed) }}
-          onKeyUp={event => { if (['ArrowLeft', 'ArrowRight', 'Home', 'End', 'PageUp', 'PageDown'].includes(event.key)) void commitPreview() }}
-          onBlur={() => { if (dragging) void commitPreview() }}
+          onKeyUp={event => { if (['ArrowLeft', 'ArrowRight', 'Home', 'End', 'PageUp', 'PageDown'].includes(event.key)) void commitAt(Number(event.currentTarget.value)) }}
+          onBlur={event => { if (dragging) void commitAt(Number(event.currentTarget.value)) }}
         />
       </div>
     </section>
