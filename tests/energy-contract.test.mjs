@@ -7,9 +7,10 @@ test('energy renderer is an independent, bounded multi-pass WebGL2 effect with c
   assert.match(source, /getContext\(['"]webgl2['"]/)
   assert.match(source, /u_intensity/)
   assert.match(source, /u_ratio/)
+  assert.match(source, /u_max_reveal/)
   assert.match(source, /history\*0\.90\*leftFade/)
   assert.match(source, /fract\(u_time/)
-  assert.match(source, /sin\(u_time/)
+  assert.match(source, /sin\([^\n]*u_time/)
   assert.doesNotMatch(source, /max\(previous\.rgb/)
   assert.match(source, /inactive < 150/)
   assert.match(source, /createFramebuffer/)
@@ -49,21 +50,23 @@ test('reference appearance preserves the observed cellular feedback algorithm wh
 test('reference endpoint remains cellular and does not add a continuous thumb halo', async () => {
   const source = await readFile(new URL('../src/energy.jsx', import.meta.url), 'utf8')
   assert.match(source, /energyColor\s*\*=\s*cellMask\*leftFade/)
-  assert.doesNotMatch(source, /endpointCore|movingEdge/)
+  assert.doesNotMatch(source, /endpointCore|movingEdge|endpointPixels|endpointWash/)
   assert.doesNotMatch(source, /u_glow/)
 })
 
 test('reference Max keeps a live cellular tail into the left quarter without fixed empty cells', async () => {
   const source = await readFile(new URL('../src/energy.jsx', import.meta.url), 'utf8')
   assert.match(source, /float leadingEdge=max\(u_ratio-traveled-\(randomValue-0\.5\)\*0\.05,0\.02\)/)
-  assert.match(source, /float leftFade=smoothstep\(0\.0,0\.45,coordinate\.x\)/)
+  assert.match(source, /float leftFade=0\.10\+0\.90\*smoothstep\(0\.0,0\.12,coordinate\.x\)/)
   assert.match(source, /brightness=max\(brightness,0\.04\*started\)\*withinTrail/)
   assert.doesNotMatch(source, /step\([^\n]*randomValue[^\n]*\)\s*\*\s*cellMask/)
 })
 
-test('only Max adds a sparse moving far tail instead of a solid rail glow', async () => {
+test('only Max grows a sparse moving far tail from right to left instead of appearing at once', async () => {
   const source = await readFile(new URL('../src/energy.jsx', import.meta.url), 'utf8')
   assert.match(source, /float maxTailGate=smoothstep\(0\.995,1\.0,u_ratio\)/)
+  assert.match(source, /maxTailFront/)
+  assert.match(source, /u_max_reveal/)
   assert.match(source, /float maxTailEnvelope=1\.0-smoothstep\(0\.0,0\.34,coordinate\.x\)/)
   assert.match(source, /float maxTailCells=cellMask\*maxTailEnvelope\*maxTailGate/)
   assert.match(source, /energyColor\+=u_color\*maxTailCells/)

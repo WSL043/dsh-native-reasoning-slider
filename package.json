@@ -1,6 +1,6 @@
 {
   "name": "dsh-native-reasoning-slider",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "A native, model-aware effort slider with polished light, dark, and per-model colors for DeepSeek Harness",
   "keywords": [
     "dsh-plugin",
@@ -46,7 +46,7 @@
   },
   "scripts": {
     "build": "tsdown --config tsdown.config.mjs",
-    "build:demo": "tsdown --config tsdown.demo.config.mjs && node -e \"require('node:fs').copyFileSync('demo/style.css','docs/demo.css')\"",
+    "build:demo": "tsdown --config tsdown.demo.config.mjs && node -e \"const fs=require('node:fs');fs.copyFileSync('demo/style.css','docs/demo.css');fs.copyFileSync('demo/palette.css','docs/palette.css')\"",
     "test": "node --test tests/*.test.mjs",
     "check": "pnpm run test && pnpm run build && pnpm run build:demo && pnpm pack --pack-destination .artifacts"
   },

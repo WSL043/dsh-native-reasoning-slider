@@ -16,6 +16,7 @@ uniform float u_time;
 uniform float u_ratio;
 uniform float u_intensity;
 uniform float u_elapsed;
+uniform float u_max_reveal;
 uniform vec3 u_color;
 out vec4 outputColor;
 
@@ -30,7 +31,7 @@ void main(){
   float cellMask=smoothstep(0.34,0.22,max(centered.x*0.9,centered.y));
 
   vec3 history=texture(u_previous,coordinate).rgb;
-  float leftFade=smoothstep(0.0,0.45,coordinate.x);
+  float leftFade=0.10+0.90*smoothstep(0.0,0.12,coordinate.x);
   vec3 retained=history*0.90*leftFade;
   float enabled=smoothstep(0.001,0.05,u_intensity);
   if(enabled<0.01||u_elapsed<0.0){outputColor=vec4(retained,1.0);return;}
@@ -48,7 +49,7 @@ void main(){
   brightness=max(brightness,0.04*started)*withinTrail;
   brightness*=1.0-smoothstep(0.94,1.05,distanceBehind);
 
-  float energyScale=mix(0.15,0.5,min(u_elapsed,1.0));
+  float energyScale=mix(0.12,0.42,min(u_elapsed,1.0));
   float verticalDistance=abs(coordinate.y-0.5)*2.0;
   float verticalShape=pow(max(1.0-verticalDistance*verticalDistance*0.45,0.0),0.75);
   float timeScale=mix(0.85,1.0,min(u_elapsed/1.5,1.0));
@@ -76,7 +77,7 @@ void main(){
   float frontBand=exp(-pow((coordinate.x-leadingEdge)*18.0,2.0));
   float frontWaveA=sin(coordinate.x*45.0+u_time*20.0*timeScale+randomValue*6.28)*0.5+0.5;
   float frontWaveB=sin(coordinate.x*28.0+u_time*11.0*timeScale+randomValue*3.14)*0.5+0.5;
-  float activeFront=frontBand*(0.25+frontWaveA*frontWaveB*1.5)*1.6*enabled*energyScale;
+  float activeFront=frontBand*(0.18+frontWaveA*frontWaveB*0.82)*0.72*enabled*energyScale;
   float leadDistance=leadingEdge-coordinate.x;
   float leadArea=smoothstep(0.07,0.0,leadDistance)*step(0.0,leadDistance)*verticalShape;
   float secondaryNoise=noiseAt(cellIndex+vec2(99.0,33.0));
@@ -89,16 +90,14 @@ void main(){
   float heat=1.0-distanceBehind;
   vec3 energyColor=mix(coolColor,u_color,heat);
   energyColor=mix(energyColor,warmWhite,pow(heat,1.8))*activity;
-  float endpointPulse=sin(u_time*2.8)*0.15+1.0;
-  float endpointPixels=exp(-pow((coordinate.x-u_ratio)*16.0,2.0))*2.2*endpointPulse*enabled*energyScale;
-  float endpointWash=exp(-pow((coordinate.x-u_ratio)*3.5,2.0))*0.12*enabled*energyScale;
-  energyColor+=warmWhite*endpointPixels+u_color*endpointWash;
   energyColor*=cellMask*leftFade;
   float maxTailGate=smoothstep(0.995,1.0,u_ratio);
   float maxTailEnvelope=1.0-smoothstep(0.0,0.34,coordinate.x);
+  float maxTailFront=mix(1.02,-0.06,u_max_reveal);
+  float maxTailReveal=smoothstep(maxTailFront-0.08,maxTailFront+0.02,coordinate.x);
   float maxTailPhase=sin(coordinate.x*38.0-u_time*4.0+secondaryNoise*6.28)*0.5+0.5;
   float maxTailMotion=0.18+0.82*smoothstep(0.15,0.85,maxTailPhase);
-  float maxTailCells=cellMask*maxTailEnvelope*maxTailGate;
+  float maxTailCells=cellMask*maxTailEnvelope*maxTailGate*maxTailReveal;
   energyColor+=u_color*maxTailCells*(0.07+0.15*maxTailMotion)*energyScale;
   outputColor=vec4(min(retained+energyColor,vec3(1.5)),1.0);
 }`
@@ -111,6 +110,7 @@ uniform float u_time;
 uniform float u_ratio;
 uniform float u_intensity;
 uniform float u_elapsed;
+uniform float u_max_reveal;
 uniform vec3 u_color;
 out vec4 outputColor;
 float noiseAt(vec2 index){return fract(sin(dot(index,vec2(127.1,311.7)))*43758.5453123);}
@@ -223,7 +223,7 @@ export function EnergyField({ active, color, intensity, light, ratio, styleVaria
     gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0)
     const uniform = (program, name) => gl.getUniformLocation(program, name)
     const simulationLocations = program => ({
-      previous: uniform(program, 'u_previous'), time: uniform(program, 'u_time'), ratio: uniform(program, 'u_ratio'), intensity: uniform(program, 'u_intensity'), elapsed: uniform(program, 'u_elapsed'), color: uniform(program, 'u_color'),
+      previous: uniform(program, 'u_previous'), time: uniform(program, 'u_time'), ratio: uniform(program, 'u_ratio'), intensity: uniform(program, 'u_intensity'), elapsed: uniform(program, 'u_elapsed'), maxReveal: uniform(program, 'u_max_reveal'), color: uniform(program, 'u_color'),
     })
     const locations = {
       reference: simulationLocations(referenceSimulation), compact: simulationLocations(compactSimulation),
@@ -236,7 +236,9 @@ export function EnergyField({ active, color, intensity, light, ratio, styleVaria
     let running = true
     let previousActive = false
     let previousVariant = values.current.styleVariant
+    let previousRatio = values.current.ratio
     let activatedAt = performance.now()
+    let maxEnteredAt = values.current.ratio >= 0.995 ? performance.now() : Number.POSITIVE_INFINITY
     const destroyTargets = () => {
       targets.forEach(({ framebuffer, texture }) => { gl.deleteFramebuffer(framebuffer); gl.deleteTexture(texture) })
       targets = []
@@ -274,6 +276,12 @@ export function EnergyField({ active, color, intensity, light, ratio, styleVaria
         activatedAt = now
         clearSimulation()
       }
+      if (Math.abs(state.ratio - previousRatio) > 0.001) {
+        if (state.ratio >= 0.995 && previousRatio < 0.995) maxEnteredAt = now
+        if (state.ratio < 0.995) maxEnteredAt = Number.POSITIVE_INFINITY
+        activatedAt = now
+        previousRatio = state.ratio
+      }
       if (state.active && !previousActive) { activatedAt = now; clearSimulation() }
       previousActive = state.active
       if (state.active) inactive = 0; else inactive += 1
@@ -281,13 +289,15 @@ export function EnergyField({ active, color, intensity, light, ratio, styleVaria
       const [red, green, blue] = hexRgb(state.color)
       const time = now / 1000
       const elapsed = state.active ? (now - activatedAt) / 1000 : -1
+      const maxRevealProgress = Number.isFinite(maxEnteredAt) ? Math.min(1, Math.max(0, (now - maxEnteredAt) / 900)) : 0
+      const maxReveal = maxRevealProgress * maxRevealProgress * (3 - 2 * maxRevealProgress)
       gl.viewport(0, 0, canvas.width, canvas.height); gl.bindVertexArray(vao)
 
       const simulation = state.styleVariant === 'compact' ? compactSimulation : referenceSimulation
       const sim = state.styleVariant === 'compact' ? locations.compact : locations.reference
       gl.bindFramebuffer(gl.FRAMEBUFFER, scene.framebuffer); gl.useProgram(simulation)
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, back.texture); gl.uniform1i(sim.previous, 0)
-      gl.uniform1f(sim.time, time); gl.uniform1f(sim.ratio, state.ratio); gl.uniform1f(sim.intensity, state.intensity); gl.uniform1f(sim.elapsed, elapsed)
+      gl.uniform1f(sim.time, time); gl.uniform1f(sim.ratio, state.ratio); gl.uniform1f(sim.intensity, state.intensity); gl.uniform1f(sim.elapsed, elapsed); gl.uniform1f(sim.maxReveal, maxReveal)
       gl.uniform3f(sim.color, red, green, blue); gl.drawArrays(gl.TRIANGLES, 0, 6)
 
       gl.useProgram(blur); gl.uniform2f(locations.blurResolution, canvas.width, canvas.height); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, scene.texture); gl.uniform1i(locations.blurTexture, 0)

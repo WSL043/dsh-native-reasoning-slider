@@ -23,14 +23,13 @@ test('official mode removes the shadow seat while native and energy modes keep i
 test('dragging previews locally and commits through the DSH selection contract', async () => {
   const client = await readFile(clientPath, 'utf8')
   assert.match(client, /onInput=\{previewOnly\}/)
-  assert.match(client, /onPointerUp=\{event\s*=>\s*\{\s*void commitAt\(indexToPosition\(event\.currentTarget\.value\)\)\s*\}\}/)
+  assert.match(client, /onPointerUp=\{event\s*=>\s*\{\s*void commitAt\(Number\(event\.currentTarget\.value\)\)\s*\}\}/)
   assert.doesNotMatch(client, /const commitPreview\s*=/)
   assert.match(client, /reasoningEffort:\s*effort\.id/)
   assert.doesNotMatch(client, /onInput=\{[^}]*select\(/s)
   assert.match(client, /const sliderStep = 100 \/ \(efforts\.length - 1\)/)
-  assert.match(client, /const previewIndex = preview \/ sliderStep/)
-  assert.match(client, /const indexToPosition = index => Number\(index\) \* sliderStep/)
-  assert.match(client, /max=\{efforts\.length - 1\} step="1" value=\{previewIndex\}/)
+  assert.doesNotMatch(client, /const previewIndex = preview \/ sliderStep/)
+  assert.match(client, /max="100" step="0\.1" value=\{preview\}/)
 })
 
 test('keyboard input moves between advertised effort levels instead of decimal range steps', async () => {
@@ -115,6 +114,14 @@ test('mode setting uses the official DSH menu primitive', async () => {
   assert.match(client, /<Menu\s+open=\{open\}/)
   assert.match(client, /className="nrs-mode-picker"/)
   assert.doesNotMatch(client, /role="radiogroup"/)
+})
+
+test('plugin preferences own a dedicated settings page instead of growing General settings', async () => {
+  const client = await readFile(clientPath, 'utf8')
+  assert.match(client, /const SETTINGS_SLOT = ['"]settings\.section['"]/)
+  assert.match(client, /id:\s*['"]reasoning-effort['"]/)
+  assert.match(client, /label:\s*\(\)\s*=>\s*t\(['"]settingsNav['"]\)/)
+  assert.doesNotMatch(client, /settings\.general\.item/)
 })
 
 test('the replacement model menu preserves keyboard escape and focus movement', async () => {

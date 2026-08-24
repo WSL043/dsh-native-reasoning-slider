@@ -31,7 +31,7 @@ export const name = 'dsh-native-reasoning-slider'
 export const inject = ['slots', 'locale', 'modelDirectories', 'sessions']
 
 const SLOT = 'conversation.input.model'
-const SETTINGS_SLOT = 'settings.general.item'
+const SETTINGS_SLOT = 'settings.section'
 const STORAGE_KEY = 'dsh-native-reasoning-slider.mode'
 const APPEARANCE_KEY = 'dsh-native-reasoning-slider.appearance.v1'
 const ENERGY_STYLE_KEY = 'dsh-native-reasoning-slider.energy-style'
@@ -118,6 +118,7 @@ export const modelChoicesStore = {
 
 const LOCALES = {
   en: {
+    settingsNav: 'Effort', settingsPageDescription: 'Choose how reasoning effort appears and behaves for every model that publishes effort levels.',
     settingTitle: 'Reasoning control', settingDescription: 'Use the official menu, a quiet native slider, or transient energy effects.',
     official: 'Official', native: 'Native', energy: 'Energy', model: 'Model', effort: 'Effort', retry: 'Retry',
     energyStyle: 'Energy appearance', energyStyleDescription: 'Reference follows the full cellular trail; Compact is an experimental quieter alternative.',
@@ -130,6 +131,7 @@ const LOCALES = {
     selectionFailed: 'The setting was not saved. {message}', groupFailed: '{name}: {message}', selectModel: 'Select model',
   },
   zh: {
+    settingsNav: '推理滑块', settingsPageDescription: '设置所有已公布推理档位的模型如何显示和切换推理强度。',
     settingTitle: '推理强度控制', settingDescription: '可切换官方菜单、安静的原生滑块或短暂能量特效。',
     official: '官方', native: '原生', energy: '能量', model: '模型', effort: '推理强度', retry: '重试',
     energyStyle: '能量外观', energyStyleDescription: '参考效果保留完整像素拖尾；紧凑效果是更克制的实验选项。',
@@ -175,13 +177,11 @@ function EffortSlider({ current, reasoning, select, busy, mode, onFailure, t }) 
   const active = dragging || settling
   const ratio = preview / 100
   const sliderStep = 100 / (efforts.length - 1)
-  const previewIndex = preview / sliderStep
   const energized = ratio > 0
   const intensity = energyIntensity(ratio)
   const colors = resolveColors(appearance, current.provider, current.model)
   const energyColor = dark ? colors.dark : colors.light
-  const indexToPosition = index => Number(index) * sliderStep
-  const previewOnly = event => setPreview(indexToPosition(event.currentTarget.value))
+  const previewOnly = event => setPreview(Number(event.currentTarget.value))
   const commitAt = async position => {
     setDragging(false)
     if (committing.current) return
@@ -228,14 +228,14 @@ function EffortSlider({ current, reasoning, select, busy, mode, onFailure, t }) 
         {mode === 'energy' ? <EnergyField active={energized} color={energyColor} intensity={intensity} light={!dark} ratio={ratio} styleVariant={energyStyle} /> : null}
         <div className="nrs-track-thumb" aria-hidden="true" />
         <input
-          className="nrs-range" type="range" min="0" max={efforts.length - 1} step="1" value={previewIndex} disabled={busy}
+          className="nrs-range" type="range" min="0" max="100" step="0.1" value={preview} disabled={busy}
           aria-label={t('effort')} aria-valuetext={currentLabel}
           onInput={previewOnly}
           onPointerDown={() => setDragging(true)}
-          onPointerUp={event => { void commitAt(indexToPosition(event.currentTarget.value)) }}
+          onPointerUp={event => { void commitAt(Number(event.currentTarget.value)) }}
           onPointerCancel={() => { setDragging(false); setPreview(committed) }}
           onKeyDown={onSliderKeyDown}
-          onBlur={event => { if (dragging) void commitAt(indexToPosition(event.currentTarget.value)) }}
+          onBlur={event => { if (dragging) void commitAt(Number(event.currentTarget.value)) }}
         />
       </div>
     </section>
@@ -398,12 +398,13 @@ function PluginSettings({ t }) {
     if (appearance.scope === 'model' && selectedChoice !== undefined) appearanceStore.setModel(selectedChoice.provider, selectedChoice.model, theme, value)
     else appearanceStore.setGlobal(theme, value)
   }
-  return <>
+  return <section className="nrs-settings-page">
+    <header className="nrs-settings-header"><h2>{t('settingTitle')}</h2><p>{t('settingsPageDescription')}</p></header>
     <div className="nrs-mode-row"><div className="nrs-mode-copy"><div className="nrs-mode-title">{t('settingTitle')}</div><div className="nrs-mode-description">{t('settingDescription')}</div></div><SettingsMenu items={['official', 'native', 'energy']} selected={mode} onSelect={modeStore.set} t={t} /></div>
     {mode === 'energy' ? <div className="nrs-mode-row"><div className="nrs-mode-copy"><div className="nrs-mode-title">{t('energyStyle')}</div><div className="nrs-mode-description">{t('energyStyleDescription')}</div></div><SettingsMenu items={['referenceEffect', 'compactEffect']} selected={energyStyle === 'compact' ? 'compactEffect' : 'referenceEffect'} onSelect={entry => energyStyleStore.set(entry === 'compactEffect' ? 'compact' : 'reference')} t={t} /></div> : null}
     <div className="nrs-mode-row"><div className="nrs-mode-copy"><div className="nrs-mode-title">{t('colorAssignment')}</div><div className="nrs-mode-description">{t('colorDescription')}</div></div><SettingsMenu items={['allModels', 'eachModel']} selected={scope} onSelect={entry => appearanceStore.setScope(entry === 'eachModel' ? 'model' : 'global')} t={t} /></div>
     <div className="nrs-mode-row"><div className="nrs-mode-copy"><div className="nrs-mode-title">{t(appearance.scope === 'model' ? 'modelColors' : 'allModelColors')}</div><div className="nrs-mode-description">{t(appearance.scope === 'model' ? 'modelColorsDescription' : 'allModelColorsDescription')}</div></div><div className="nrs-setting-actions">{appearance.scope === 'model' ? <ModelSettingsMenu choices={modelColorChoices} selected={selectedPaletteModel} onSelect={setSelectedPaletteModel} t={t} /> : null}<ColorInput disabled={appearance.scope === 'model' && selectedChoice === undefined} label={t('lightColor')} value={palette.light} onChange={value => setPaletteColor('light', value)} /><ColorInput disabled={appearance.scope === 'model' && selectedChoice === undefined} label={t('darkColor')} value={palette.dark} onChange={value => setPaletteColor('dark', value)} /></div></div>
-  </>
+  </section>
 }
 
 export function apply(ctx) {
@@ -416,7 +417,7 @@ export function apply(ctx) {
   }, `${name}: styles`)
   ctx.effect(() => ctx.locale.register(name, LOCALES), `${name}: dictionaries`)
   const t = ctx.locale.bind(name)
-  ctx.slots.inject(SETTINGS_SLOT, () => ctx.slots.register({ name: SETTINGS_SLOT, id: 'native-reasoning-slider-mode', order: 17 }, () => <PluginSettings t={t} />))
+  ctx.slots.inject(SETTINGS_SLOT, () => ctx.slots.register({ name: SETTINGS_SLOT, id: 'reasoning-effort', order: 26, label: () => t('settingsNav') }, () => <PluginSettings t={t} />))
   ctx.slots.inject(SLOT, () => {
     let disposeModelSeat
     const syncModelSeat = () => {

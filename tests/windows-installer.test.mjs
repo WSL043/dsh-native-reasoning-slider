@@ -9,7 +9,7 @@ const installerPath = new URL('../install.ps1', import.meta.url)
 const releasePath = new URL('../.github/workflows/release.yml', import.meta.url)
 const windowsTest = process.platform === 'win32' ? test : test.skip
 
-test('the irm helper uses the official DSH plugin command and a fixed package version', async () => {
+test('the irm helper uses an existing official DSH command and never cold-installs the DSH dependency tree', async () => {
   const [installer, manifest, compatibility] = await Promise.all([
     readFile(installerPath, 'utf8'),
     readFile(new URL('../package.json', import.meta.url), 'utf8').then(JSON.parse),
@@ -17,9 +17,10 @@ test('the irm helper uses the official DSH plugin command and a fixed package ve
   ])
   assert.match(installer, new RegExp(`dsh-native-reasoning-slider@${manifest.version.replaceAll('.', '\\.')}\\b`))
   assert.match(installer, /plugin['"],\s*['"]--profile['"],\s*['"]web['"],\s*['"]add['"]/) 
-  assert.match(installer, new RegExp(`@deepseek-ai/dsh@${compatibility.latestTested.replaceAll('.', '\\.')}\\b`))
+  assert.match(installer, /@deepseek-ai[\\\\/]dsh/u)
   assert.doesNotMatch(installer, /DSH_PORTABLE_ROOT|dsh\.exe|\\dsh\.exe/)
-  assert.match(installer, /--prefer-offline[\s\S]*--no-audit[\s\S]*--no-fund/u)
+  assert.doesNotMatch(installer, /\bnpx\b|--prefer-offline|--no-audit|--no-fund/u)
+  assert.match(installer, /DSH was not found[\s\S]*Install or start DeepSeek Harness/u)
 })
 
 windowsTest('a running official DSH is reused instead of starting npx', async t => {
@@ -45,7 +46,7 @@ windowsTest('a running official DSH is reused instead of starting npx', async t 
     encoding: 'utf8',
   })
   assert.equal(result.status, 0, result.stderr || result.stdout)
-  assert.equal((await readFile(nodeLog, 'utf8')).trim(), `${bin} plugin --profile web add dsh-native-reasoning-slider@0.1.2`)
+  assert.equal((await readFile(nodeLog, 'utf8')).trim(), `${bin} plugin --profile web add dsh-native-reasoning-slider@0.1.3`)
   await assert.rejects(readFile(npxLog, 'utf8'), /ENOENT/u)
 })
 

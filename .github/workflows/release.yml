@@ -116,10 +116,10 @@ jobs:
           cat > .candidate/release.md <<'NOTES'
           ## What's new
 
-          - Adds separate compact model and effort pills to the DSH composer.
-          - Opens the model's exact advertised effort levels in a small native popover.
-          - Adds polished light and dark Energy colors, with global or per-model palettes.
-          - Uses an independent WebGL effect only while its popover is open; Native remains the still alternative.
+          - Makes pointer movement continuous, then snaps safely to an exact model-advertised effort on release.
+          - Refines the cellular renderer: no thumb halo, calmer mid levels, and a right-to-left Max reveal instead of a sudden far-left flash.
+          - Moves appearance and behavior preferences into a dedicated Effort Settings page, with separate light/dark and per-model palettes.
+          - Makes the PowerShell helper reuse an existing official DSH and fail fast instead of temporarily installing the full DSH dependency tree.
 
           ## Install
 
@@ -137,10 +137,10 @@ jobs:
 
           ## 中文
 
-          - 输入框中使用独立、紧凑的模型与推理强度胶囊。
-          - 点击强度胶囊后，展开当前模型真实提供的档位。
-          - 能量模式支持浅色/深色默认配色、统一配色和按模型配色。
-          - 独立 WebGL 效果只在弹层打开时运行；不需要动态时可切换原生模式。
+          - 拖动过程连续跟手，松开后再安全吸附到模型真实提供的档位。
+          - 细化像素算法：移除滑块光晕、降低中档过亮，并让 Max 从右向左自然蔓延。
+          - 外观与行为设置移入独立的“推理滑块”设置页，继续支持亮暗主题与按模型配色。
+          - PowerShell 安装助手只复用现有官方 DSH；找不到时立即提示，不再临时安装完整 DSH 依赖树。
 
           ```powershell
           irm 'https://github.com/WSL043/dsh-native-reasoning-slider/releases/latest/download/install.ps1' | iex

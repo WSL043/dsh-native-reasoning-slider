@@ -5,13 +5,26 @@ import { energyIntensity } from '../src/policy.js'
 
 const LEVELS = ['Off', 'Low', 'High', 'Max']
 const DEFAULTS = { dark: '#a857f7', light: '#8a49ca' }
+const PRESETS = { light: ['#8a49ca', '#3769d8', '#a44d7d'], dark: ['#a857f7', '#66a4ff', '#ee72b7'] }
 
 function prefersDark() {
   return window.matchMedia('(prefers-color-scheme: dark)').matches
 }
 
+function PaletteControl({ label, presets, value, onChange }) {
+  const [draft, setDraft] = useState(value)
+  useEffect(() => setDraft(value), [value])
+  const commit = next => {
+    const normalized = next.trim().toLowerCase()
+    if (/^#[0-9a-f]{6}$/u.test(normalized)) onChange(normalized)
+    else setDraft(value)
+  }
+  return <label className="palette"><span>{label}</span><div className="palette-editor"><div className="swatches">{presets.map(color => <button key={color} type="button" aria-label={`${label} ${color}`} className={color === value ? 'selected' : ''} style={{ '--swatch': color }} onClick={() => onChange(color)} />)}</div><input aria-label={`${label} hex color`} value={draft} spellCheck="false" onChange={event => setDraft(event.currentTarget.value)} onBlur={event => commit(event.currentTarget.value)} onKeyDown={event => { if (event.key === 'Enter') { commit(event.currentTarget.value); event.currentTarget.blur() } }} /></div></label>
+}
+
 function Demo() {
   const [level, setLevel] = useState(3)
+  const [preview, setPreview] = useState(100)
   const [theme, setTheme] = useState('system')
   const [dark, setDark] = useState(prefersDark)
   const [colors, setColors] = useState(DEFAULTS)
@@ -22,9 +35,13 @@ function Demo() {
     sync(); query.addEventListener('change', sync)
     return () => query.removeEventListener('change', sync)
   }, [theme])
-  const ratio = level / (LEVELS.length - 1)
+  const ratio = preview / 100
   const intensity = energyIntensity(ratio)
   const color = dark ? colors.dark : colors.light
+  const snap = value => {
+    const next = Math.round((Number(value) / 100) * (LEVELS.length - 1))
+    setLevel(next); setPreview((next / (LEVELS.length - 1)) * 100)
+  }
   return <main className="page" data-theme={dark ? 'dark' : 'light'}>
     <header className="hero">
       <p className="eyebrow">MODEL-AWARE REASONING CONTROL</p>
@@ -35,18 +52,18 @@ function Demo() {
     <section className="demo-card" aria-label="Interactive reasoning effort slider">
       <div className="demo-head"><div><span className="label">Reasoning effort</span><strong>{LEVELS[level]}</strong></div><span className="live">Live renderer</span></div>
       <div className={`rail-shell ${level === 3 ? 'is-max' : ''}`} style={{ '--demo-color': color, '--demo-ratio': ratio, '--demo-thumb-center': `calc(14px + (100% - 28px) * ${ratio})`, '--demo-opacity': .24 + intensity * .76 }}>
-        <div className="levels">{LEVELS.map((name, index) => <button type="button" className={index === level ? 'current' : ''} key={name} onClick={() => setLevel(index)}>{name}</button>)}</div>
+        <div className="levels">{LEVELS.map((name, index) => <button type="button" className={index === level ? 'current' : ''} key={name} onClick={() => { setLevel(index); setPreview((index / (LEVELS.length - 1)) * 100) }}>{name}</button>)}</div>
         <div className="track">
           <div className="track-bg" />
           <div className="dots">{LEVELS.map(name => <i key={name} />)}</div>
           <EnergyField active={level > 0} color={color} intensity={intensity} light={!dark} ratio={ratio} styleVariant="reference" />
           <div className="thumb" />
-          <input aria-label="Reasoning effort" aria-valuetext={LEVELS[level]} type="range" min="0" max="3" step="1" value={level} onInput={event => setLevel(Number(event.currentTarget.value))} />
+          <input aria-label="Reasoning effort" aria-valuetext={LEVELS[level]} type="range" min="0" max="100" step="0.1" value={preview} onInput={event => setPreview(Number(event.currentTarget.value))} onPointerUp={event => snap(event.currentTarget.value)} onKeyUp={event => snap(event.currentTarget.value)} />
         </div>
       </div>
       <div className="controls">
         <fieldset><legend>Appearance</legend><div className="segmented">{['system', 'dark', 'light'].map(value => <button type="button" className={theme === value ? 'selected' : ''} key={value} onClick={() => setTheme(value)}>{value[0].toUpperCase() + value.slice(1)}</button>)}</div></fieldset>
-        <label className="color"><span>{dark ? 'Dark color' : 'Light color'}</span><input type="color" value={dark ? colors.dark : colors.light} onChange={event => setColors(current => ({ ...current, [dark ? 'dark' : 'light']: event.currentTarget.value }))} /></label>
+        <div className="palettes"><PaletteControl label="Light palette" presets={PRESETS.light} value={colors.light} onChange={value => setColors(current => ({ ...current, light: value }))} /><PaletteControl label="Dark palette" presets={PRESETS.dark} value={colors.dark} onChange={value => setColors(current => ({ ...current, dark: value }))} /></div>
       </div>
     </section>
     <footer><span>Off stays silent. Low whispers. High gathers. Max fills the field.</span><span>Keyboard and reduced-motion friendly.</span></footer>
