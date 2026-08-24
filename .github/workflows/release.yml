@@ -23,6 +23,7 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.tag }}
+      dsh_version: ${{ steps.version.outputs.dsh_version }}
       needed: ${{ steps.existing.outputs.needed }}
     steps:
       - uses: actions/checkout@v7
@@ -35,6 +36,7 @@ jobs:
           [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag=v$version" >> "$GITHUB_OUTPUT"
+          echo "dsh_version=$(node -p \"require('./compatibility.json').latestTested\")" >> "$GITHUB_OUTPUT"
       - name: Protect immutable releases
         id: existing
         env:
@@ -98,9 +100,31 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run check
 
+  official-acceptance:
+    needs: [preflight, verify]
+    if: needs.preflight.outputs.needed == 'true'
+    runs-on: windows-2025
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-candidate-${{ github.sha }}
+          path: .candidate
+      - name: Official DSH end-to-end acceptance
+        shell: powershell
+        run: .\.github\scripts\accept-official-release.ps1 -PackagePath .candidate\dsh-native-reasoning-slider.tgz -DshVersion '${{ needs.preflight.outputs.dsh_version }}'
+
   release:
-    needs: [preflight, verify, windows]
-    if: needs.preflight.outputs.needed == 'true' && needs.verify.result == 'success' && needs.windows.result == 'success'
+    needs: [preflight, verify, windows, official-acceptance]
+    if: needs.preflight.outputs.needed == 'true' && needs.verify.result == 'success' && needs.windows.result == 'success' && needs.official-acceptance.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

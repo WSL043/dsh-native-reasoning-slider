@@ -36,3 +36,9 @@ test('release carries both the accepted package and installer between jobs', asy
   assert.match(workflow, /path:\s*\|[\s\S]*\.candidate\/dsh-native-reasoning-slider\.tgz[\s\S]*\.candidate\/install\.ps1/)
   assert.match(workflow, /gh release create[^\n]*\.candidate\/dsh-native-reasoning-slider\.tgz \.candidate\/install\.ps1/)
 })
+
+test('publication waits for installed official DSH acceptance of the exact candidate', async () => {
+  const workflow = await readFile(new URL('../.github/workflows/release.yml', import.meta.url), 'utf8')
+  assert.match(workflow, /official-acceptance:[\s\S]*accept-official-release\.ps1[\s\S]*dsh-native-reasoning-slider\.tgz/u)
+  assert.match(workflow, /release:[\s\S]*needs:\s*\[[^\]]*official-acceptance[^\]]*\]/u)
+})
