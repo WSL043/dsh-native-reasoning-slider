@@ -2,6 +2,17 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 
+test('both public READMEs show cumulative npm downloads, never a time-window count', async () => {
+  const readmes = await Promise.all([
+    readFile(new URL('../README.md', import.meta.url), 'utf8'),
+    readFile(new URL('../README.zh-CN.md', import.meta.url), 'utf8'),
+  ])
+  for (const readme of readmes) {
+    assert.match(readme, /img\.shields\.io\/npm\/dt\/dsh-native-reasoning-slider/)
+    assert.doesNotMatch(readme, /img\.shields\.io\/npm\/d(?:m|w|y)\/dsh-native-reasoning-slider/)
+  }
+})
+
 test('release reuses one accepted package and publishes npm through OIDC', async () => {
   const workflow = await readFile(new URL('../.github/workflows/release.yml', import.meta.url), 'utf8')
   assert.match(workflow, /id-token:\s*write/)

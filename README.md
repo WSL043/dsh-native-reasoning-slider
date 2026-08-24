@@ -6,7 +6,7 @@
 
 [![CI](https://github.com/WSL043/dsh-native-reasoning-slider/actions/workflows/ci.yml/badge.svg)](https://github.com/WSL043/dsh-native-reasoning-slider/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/dsh-native-reasoning-slider?logo=npm&label=npm)](https://www.npmjs.com/package/dsh-native-reasoning-slider)
-[![npm downloads](https://img.shields.io/npm/dt/dsh-native-reasoning-slider?logo=npm&label=downloads)](https://www.npmjs.com/package/dsh-native-reasoning-slider)
+[![total npm downloads](https://img.shields.io/npm/dt/dsh-native-reasoning-slider?logo=npm&label=total%20downloads)](https://www.npmjs.com/package/dsh-native-reasoning-slider)
 [![MIT](https://img.shields.io/badge/license-MIT-111111.svg)](LICENSE)
 
 [Install](#install) · [Modes](#three-modes-one-plugin) · [简体中文](README.zh-CN.md)

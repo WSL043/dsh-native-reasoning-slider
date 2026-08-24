@@ -4,6 +4,11 @@
 
 **为 DeepSeek Harness 提供简洁、识别模型能力的推理强度控制**
 
+[![CI](https://github.com/WSL043/dsh-native-reasoning-slider/actions/workflows/ci.yml/badge.svg)](https://github.com/WSL043/dsh-native-reasoning-slider/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/dsh-native-reasoning-slider?logo=npm&label=npm)](https://www.npmjs.com/package/dsh-native-reasoning-slider)
+[![npm 总下载量](https://img.shields.io/npm/dt/dsh-native-reasoning-slider?logo=npm&label=%E6%80%BB%E4%B8%8B%E8%BD%BD%E9%87%8F)](https://www.npmjs.com/package/dsh-native-reasoning-slider)
+[![MIT](https://img.shields.io/badge/license-MIT-111111.svg)](LICENSE)
+
 [English](README.md) · [安装](#安装) · [三种模式](#一个插件三种模式)
 
 </div>
