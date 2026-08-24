@@ -36,7 +36,8 @@ jobs:
           [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag=v$version" >> "$GITHUB_OUTPUT"
-          echo "dsh_version=$(node -p \"require('./compatibility.json').latestTested\")" >> "$GITHUB_OUTPUT"
+          dsh_version="$(node -p "require('./compatibility.json').latestTested")"
+          echo "dsh_version=$dsh_version" >> "$GITHUB_OUTPUT"
       - name: Protect immutable releases
         id: existing
         env:
