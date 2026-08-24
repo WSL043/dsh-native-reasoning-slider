@@ -2,7 +2,7 @@
 param()
 
 $ErrorActionPreference = 'Stop'
-$packageSpec = 'dsh-native-reasoning-slider@0.1.3'
+$packageSpec = 'dsh-native-reasoning-slider@0.1.4'
 $chinese = [Globalization.CultureInfo]::CurrentUICulture.Name -like 'zh-*'
 
 function Say([string]$ChineseText, [string]$EnglishText) {
@@ -11,6 +11,32 @@ function Say([string]$ChineseText, [string]$EnglishText) {
 
 function New-DshInvocation([string]$Command, [string[]]$Prefix, [string]$Label) {
     [pscustomobject]@{ Command = $Command; Prefix = $Prefix; Label = $Label }
+}
+
+function Invoke-PluginAddWithReleaseAgeRecovery($Invocation, [string]$PackageSpec) {
+    $arguments = @($Invocation.Prefix) + @('plugin', '--profile', 'web', 'add', $PackageSpec)
+    $lines = [Collections.Generic.List[string]]::new()
+    $previousErrorAction = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        & $Invocation.Command @arguments 2>&1 | ForEach-Object {
+            $line = [string]$_
+            $lines.Add($line)
+            Write-Host $line
+        }
+        $exitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorAction
+    }
+    $releaseAgeBlocked = ($lines -join "`n") -match 'ERR_PNPM_(?:MINIMUM_RELEASE_AGE_VIOLATION|NO_MATURE_MATCHING_VERSION)'
+    if ($exitCode -ne 0 -and $releaseAgeBlocked) {
+        Say '现有锁文件包含仍在发布时间等待期内的版本；正在对此命令进行一次性确认重试…' 'The existing lockfile contains a version still inside the release-age hold; retrying this command once with a scoped confirmation...'
+        $retryArguments = @($Invocation.Prefix) + @('plugin', '--profile', 'web', 'add', '--config.minimumReleaseAge=0', $PackageSpec)
+        & $Invocation.Command @retryArguments
+        $exitCode = $LASTEXITCODE
+    }
+    return $exitCode
 }
 
 function Get-OfficialDshInvocation([string]$Node, [string]$Bin) {
@@ -90,9 +116,8 @@ if (-not $invocation) {
 
 Say "目标：$($invocation.Label)" "Target: $($invocation.Label)"
 Say '正在通过 DSH 官方插件命令安装…' 'Installing through the official DSH plugin command...'
-$arguments = @($invocation.Prefix) + @('plugin', '--profile', 'web', 'add', $packageSpec)
-& $invocation.Command @arguments
-if ($LASTEXITCODE -ne 0) {
-    throw "DSH plugin command failed with exit code $LASTEXITCODE."
+$exitCode = Invoke-PluginAddWithReleaseAgeRecovery $invocation $packageSpec
+if ($exitCode -ne 0) {
+    throw "DSH plugin command failed with exit code $exitCode."
 }
 Say '安装完成。请保存工作并正常重启 DSH。' 'Installed. Save your work and restart DSH normally.'

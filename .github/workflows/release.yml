@@ -116,10 +116,8 @@ jobs:
           cat > .candidate/release.md <<'NOTES'
           ## What's new
 
-          - Makes pointer movement continuous, then snaps safely to an exact model-advertised effort on release.
-          - Refines the cellular renderer: no thumb halo, calmer mid levels, and a right-to-left Max reveal instead of a sudden far-left flash.
-          - Moves appearance and behavior preferences into a dedicated Effort Settings page, with separate light/dark and per-model palettes.
-          - Makes the PowerShell helper reuse an existing official DSH and fail fast instead of temporarily installing the full DSH dependency tree.
+          - Fixes PowerShell helper installation when another newly published plugin already exists in the DSH profile lockfile.
+          - Retries only the affected command once after pnpm reports a release-age lock; the normal supply-chain policy remains enabled.
 
           ## Install
 
@@ -137,10 +135,8 @@ jobs:
 
           ## 中文
 
-          - 拖动过程连续跟手，松开后再安全吸附到模型真实提供的档位。
-          - 细化像素算法：移除滑块光晕、降低中档过亮，并让 Max 从右向左自然蔓延。
-          - 外观与行为设置移入独立的“推理滑块”设置页，继续支持亮暗主题与按模型配色。
-          - PowerShell 安装助手只复用现有官方 DSH；找不到时立即提示，不再临时安装完整 DSH 依赖树。
+          - 修复 DSH profile 锁文件里已有其他刚发布插件时，PowerShell 安装助手被发布时间等待策略阻断的问题。
+          - 仅在 pnpm 明确报告该错误后对当前命令重试一次，正常供应链策略保持启用。
 
           ```powershell
           irm 'https://github.com/WSL043/dsh-native-reasoning-slider/releases/latest/download/install.ps1' | iex
