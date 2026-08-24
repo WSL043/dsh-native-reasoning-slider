@@ -46,8 +46,9 @@
   },
   "scripts": {
     "build": "tsdown --config tsdown.config.mjs",
+    "build:demo": "tsdown --config tsdown.demo.config.mjs && node -e \"require('node:fs').copyFileSync('demo/style.css','docs/demo.css')\"",
     "test": "node --test tests/*.test.mjs",
-    "check": "pnpm run test && pnpm run build && pnpm pack --pack-destination .artifacts"
+    "check": "pnpm run test && pnpm run build && pnpm run build:demo && pnpm pack --pack-destination .artifacts"
   },
   "repository": {
     "type": "git",
@@ -94,6 +95,7 @@
     "@deepseek-ai/dsh-client-ui-settings": "0.1.1-rc.2",
     "@deepseek-ai/dsh-client-ui-slots": "0.1.1-rc.2",
     "react": "18.3.1",
+    "react-dom": "18.3.1",
     "tsdown": "0.22.2"
   }
 }

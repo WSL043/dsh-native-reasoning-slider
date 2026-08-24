@@ -9,12 +9,12 @@
 [![npm 总下载量](https://img.shields.io/npm/dt/dsh-native-reasoning-slider?logo=npm&label=%E6%80%BB%E4%B8%8B%E8%BD%BD%E9%87%8F)](https://www.npmjs.com/package/dsh-native-reasoning-slider)
 [![MIT](https://img.shields.io/badge/license-MIT-111111.svg)](LICENSE)
 
-[English](README.md) · [安装](#安装) · [三种模式](#一个插件三种模式)
+[交互体验](https://wsl043.github.io/dsh-native-reasoning-slider/) · [安装](#安装) · [三种模式](#一个插件三种模式) · [English](README.md)
 
 </div>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/WSL043/dsh-native-reasoning-slider/main/docs/assets/reasoning-slider-zh.png" width="900" alt="DeepSeek Harness 输入框中的推理强度滑杆">
+  <a href="https://wsl043.github.io/dsh-native-reasoning-slider/"><img src="https://raw.githubusercontent.com/WSL043/dsh-native-reasoning-slider/main/docs/assets/reasoning-slider-hero-dark-en.png" width="900" alt="暗色 DeepSeek Harness 输入区与局部放大的能量推理滑杆"></a>
 </p>
 
 ## 为什么做这个插件
@@ -48,6 +48,12 @@ DSH 中的不同模型会公布不同的推理强度档位。这个插件在输�
 后，可在设置页选择模型并分别设置浅色和深色配色。输入框弹层只负责调节
 推理强度。动效灵感来自 Claude，
 但实现与模型接口均保持供应商中立。
+
+<p align="center">
+  <a href="https://wsl043.github.io/dsh-native-reasoning-slider/"><img src="https://raw.githubusercontent.com/WSL043/dsh-native-reasoning-slider/main/docs/assets/reasoning-slider-energy-dark.gif" width="612" alt="从 Off 拖动到 Max 的高清推理滑杆动图"></a>
+</p>
+
+可在[交互体验页](https://wsl043.github.io/dsh-native-reasoning-slider/)直接操作同一套正式渲染器，体验拖动、键盘、浅色/深色界面和实时配色；页面不连接任何账号。
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/WSL043/dsh-native-reasoning-slider/main/docs/assets/mode-settings-zh.png" width="820" alt="DSH 设置中的官方、原生与能量三种模式">

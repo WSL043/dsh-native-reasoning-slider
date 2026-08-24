@@ -9,12 +9,12 @@
 [![total npm downloads](https://img.shields.io/npm/dt/dsh-native-reasoning-slider?logo=npm&label=total%20downloads)](https://www.npmjs.com/package/dsh-native-reasoning-slider)
 [![MIT](https://img.shields.io/badge/license-MIT-111111.svg)](LICENSE)
 
-[Install](#install) · [Modes](#three-modes-one-plugin) · [简体中文](README.zh-CN.md)
+[Live demo](https://wsl043.github.io/dsh-native-reasoning-slider/) · [Install](#install) · [Modes](#three-modes-one-plugin) · [简体中文](README.zh-CN.md)
 
 </div>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/WSL043/dsh-native-reasoning-slider/main/docs/assets/reasoning-slider-en.png" width="900" alt="Reasoning effort slider inside the DeepSeek Harness composer">
+  <a href="https://wsl043.github.io/dsh-native-reasoning-slider/"><img src="https://raw.githubusercontent.com/WSL043/dsh-native-reasoning-slider/main/docs/assets/reasoning-slider-hero-dark-en.png" width="900" alt="Dark DeepSeek Harness composer with the Energy effort slider enlarged"></a>
 </p>
 
 ## Why this plugin
@@ -50,6 +50,12 @@ for one palette, or **Per model** and select each model's light and dark colors
 in the settings page. The composer popover stays focused on effort control.
 The motion is Claude-inspired, but the implementation and model contract are
 provider-neutral.
+
+<p align="center">
+  <a href="https://wsl043.github.io/dsh-native-reasoning-slider/"><img src="https://raw.githubusercontent.com/WSL043/dsh-native-reasoning-slider/main/docs/assets/reasoning-slider-energy-dark.gif" width="612" alt="High-resolution animation of the effort slider moving from Off through Max"></a>
+</p>
+
+Try the same production renderer on the [interactive experience page](https://wsl043.github.io/dsh-native-reasoning-slider/). It supports dragging, keyboard input, light/dark appearance, and live color adjustment without connecting to an account.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/WSL043/dsh-native-reasoning-slider/main/docs/assets/mode-settings-en.png" width="820" alt="Official, Native, and Energy presentation modes in DSH Settings">

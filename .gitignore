@@ -4,3 +4,6 @@ lib/
 .playwright-cli/
 *.tgz
 *.log
+docs/demo.js
+docs/demo.css
+docs/assets/reasoning-slider-detail-dark-en.png
