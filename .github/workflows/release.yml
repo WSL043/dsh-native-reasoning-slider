@@ -1,7 +1,13 @@
 name: Release and publish
+run-name: Release ${{ inputs.request_id || github.sha }}
 
 on:
   workflow_dispatch:
+    inputs:
+      request_id:
+        description: Correlation id used by compatibility automation
+        required: false
+        type: string
 
 permissions:
   contents: read

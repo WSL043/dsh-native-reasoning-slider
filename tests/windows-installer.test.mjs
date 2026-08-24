@@ -6,10 +6,14 @@ const installerPath = new URL('../install.ps1', import.meta.url)
 const releasePath = new URL('../.github/workflows/release.yml', import.meta.url)
 
 test('the irm helper uses the official DSH plugin command and a fixed package version', async () => {
-  const installer = await readFile(installerPath, 'utf8')
-  assert.match(installer, /dsh-native-reasoning-slider@0\.1\.1/)
+  const [installer, manifest, compatibility] = await Promise.all([
+    readFile(installerPath, 'utf8'),
+    readFile(new URL('../package.json', import.meta.url), 'utf8').then(JSON.parse),
+    readFile(new URL('../compatibility.json', import.meta.url), 'utf8').then(JSON.parse),
+  ])
+  assert.match(installer, new RegExp(`dsh-native-reasoning-slider@${manifest.version.replaceAll('.', '\\.')}\\b`))
   assert.match(installer, /plugin['"],\s*['"]--profile['"],\s*['"]web['"],\s*['"]add['"]/) 
-  assert.match(installer, /@deepseek-ai\/dsh@0\.1\.1-rc\.2/)
+  assert.match(installer, new RegExp(`@deepseek-ai/dsh@${compatibility.latestTested.replaceAll('.', '\\.')}\\b`))
   assert.doesNotMatch(installer, /DSH_PORTABLE_ROOT|dsh\.exe|\\dsh\.exe/)
 })
 

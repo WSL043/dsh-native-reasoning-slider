@@ -1,0 +1,180 @@
+name: DSH compatibility autopilot
+
+on:
+  schedule:
+    - cron: '41 */3 * * *'
+  workflow_dispatch:
+    inputs:
+      dsh_version:
+        description: Exact official DSH version; empty selects the oldest untested version
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dsh-slider-compatibility-autopilot
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    outputs:
+      changed: ${{ steps.candidate.outputs.changed }}
+      dsh_version: ${{ steps.candidate.outputs.dsh_version }}
+      plugin_version: ${{ steps.update.outputs.plugin_version }}
+      patch_sha256: ${{ steps.patch.outputs.sha256 }}
+    steps:
+      - uses: actions/checkout@v7
+        with: { ref: main }
+      - uses: pnpm/action-setup@v6
+        with: { version: 11.19.0, run_install: false }
+      - uses: actions/setup-node@v7
+        with: { node-version: 24, package-manager-cache: false }
+      - name: Select and authenticate the next official DSH release
+        id: candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUESTED_VERSION: ${{ inputs.dsh_version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          current="$(node -p "require('./compatibility.json').latestTested")"
+          if [ -n "${REQUESTED_VERSION:-}" ]; then
+            candidate="$REQUESTED_VERSION"
+          else
+            pnpm view @deepseek-ai/dsh versions --json > "$RUNNER_TEMP/dsh-versions.json"
+            candidate="$(node --input-type=module -e '
+              import { readFileSync } from "node:fs";
+              import { selectNextUntestedVersion } from "./scripts/prepare-compat-release.mjs";
+              process.stdout.write(selectNextUntestedVersion(JSON.parse(readFileSync(process.argv[1], "utf8")), process.argv[2]) ?? "");
+            ' "$RUNNER_TEMP/dsh-versions.json" "$current")"
+          fi
+          if [ -z "$candidate" ]; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+            echo "dsh_version=$current" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          [[ "$candidate" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]
+          comparison="$(node --input-type=module -e '
+            import { compareVersions } from "./scripts/prepare-compat-release.mjs";
+            process.stdout.write(String(compareVersions(process.argv[1], process.argv[2])));
+          ' "$candidate" "$current")"
+          if [ "$comparison" -lt 0 ]; then
+            echo "Requested DSH $candidate is older than tested $current." >&2
+            exit 1
+          fi
+          if [ "$comparison" -eq 0 ]; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+            echo "dsh_version=$current" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          test "$(pnpm view "@deepseek-ai/dsh@$candidate" version)" = "$candidate"
+          release_json="$RUNNER_TEMP/dsh-release.json"
+          if ! gh api "repos/deepseek-ai/deepseek-harness/releases/tags/dsh-v${candidate}" > "$release_json" 2>/dev/null; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+            echo "dsh_version=$current" >> "$GITHUB_OUTPUT"
+            echo "DSH $candidate is on npm but its official Release is not ready; waiting."
+            exit 0
+          fi
+          if ! jq -e '.draft == false and .immutable == true and (.published_at | type == "string")' "$release_json" >/dev/null; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+            echo "dsh_version=$current" >> "$GITHUB_OUTPUT"
+            echo "DSH $candidate does not yet have a final immutable official Release; waiting."
+            exit 0
+          fi
+          echo 'changed=true' >> "$GITHUB_OUTPUT"
+          echo "dsh_version=$candidate" >> "$GITHUB_OUTPUT"
+      - name: Prepare and verify the bounded candidate
+        if: steps.candidate.outputs.changed == 'true'
+        id: update
+        env: { DSH_VERSION: '${{ steps.candidate.outputs.dsh_version }}' }
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/prepare-compat-release.mjs --dsh-version "$DSH_VERSION" > "$RUNNER_TEMP/update.json"
+          echo "plugin_version=$(jq -r '.pluginVersion' "$RUNNER_TEMP/update.json")" >> "$GITHUB_OUTPUT"
+          pnpm --config.minimum-release-age=0 install --lockfile-only
+          node scripts/prepare-compat-release.mjs --refresh-release-age
+          pnpm install --frozen-lockfile
+          pnpm run check
+          git diff --check
+      - name: Fingerprint the accepted patch
+        if: steps.candidate.outputs.changed == 'true'
+        id: patch
+        shell: bash
+        run: echo "sha256=$(git diff --binary | sha256sum | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+
+  windows-acceptance:
+    needs: prepare
+    if: needs.prepare.outputs.changed == 'true'
+    runs-on: windows-2025
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with: { ref: main }
+      - uses: pnpm/action-setup@v6
+        with: { version: 11.19.0, run_install: false }
+      - uses: actions/setup-node@v7
+        with: { node-version: 24, package-manager-cache: false }
+      - shell: powershell
+        run: |
+          node scripts/prepare-compat-release.mjs --dsh-version '${{ needs.prepare.outputs.dsh_version }}'
+          pnpm --config.minimum-release-age=0 install --lockfile-only
+          node scripts/prepare-compat-release.mjs --refresh-release-age
+          pnpm install --frozen-lockfile
+          pnpm run check
+          $package = (Get-ChildItem -LiteralPath .artifacts -Filter '*.tgz' -File | Select-Object -First 1).FullName
+          .\.github\scripts\accept-official-release.ps1 -PackagePath $package -DshVersion '${{ needs.prepare.outputs.dsh_version }}'
+
+  promote:
+    needs: [prepare, windows-acceptance]
+    if: needs.prepare.outputs.changed == 'true' && needs.windows-acceptance.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions: { contents: write, actions: write }
+    steps:
+      - uses: actions/checkout@v7
+        with: { ref: main, fetch-depth: 0 }
+      - uses: pnpm/action-setup@v6
+        with: { version: 11.19.0, run_install: false }
+      - uses: actions/setup-node@v7
+        with: { node-version: 24, package-manager-cache: false }
+      - name: Reproduce, commit, and release the accepted candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DSH_VERSION: ${{ needs.prepare.outputs.dsh_version }}
+          EXPECTED_PATCH: ${{ needs.prepare.outputs.patch_sha256 }}
+          PLUGIN_VERSION: ${{ needs.prepare.outputs.plugin_version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/prepare-compat-release.mjs --dsh-version "$DSH_VERSION"
+          pnpm --config.minimum-release-age=0 install --lockfile-only
+          node scripts/prepare-compat-release.mjs --refresh-release-age
+          pnpm install --frozen-lockfile
+          pnpm test
+          pnpm run build
+          test "$(git diff --binary | sha256sum | cut -d' ' -f1)" = "$EXPECTED_PATCH"
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$GITHUB_SHA"
+          ! gh release view "v$PLUGIN_VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -- compatibility.json install.ps1 package.json pnpm-lock.yaml pnpm-workspace.yaml
+          git commit -m "chore: support DSH $DSH_VERSION"
+          git push origin HEAD:main
+          request_id="compat-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          title="Release $request_id"
+          gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref main -f request_id="$request_id"
+          release_run=''
+          for attempt in $(seq 1 90); do
+            sleep 2
+            runs="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow release.yml --event workflow_dispatch --limit 20 --json databaseId,displayTitle)"
+            release_run="$(jq -r --arg title "$title" 'map(select(.displayTitle == $title))[0].databaseId // empty' <<< "$runs")"
+            [ -z "$release_run" ] || break
+          done
+          test -n "$release_run"
+          gh run watch "$release_run" --repo "$GITHUB_REPOSITORY" --exit-status
