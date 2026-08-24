@@ -1,9 +1,13 @@
 import assert from 'node:assert/strict'
-import { readFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { delimiter, join } from 'node:path'
+import { spawnSync } from 'node:child_process'
 import test from 'node:test'
 
 const installerPath = new URL('../install.ps1', import.meta.url)
 const releasePath = new URL('../.github/workflows/release.yml', import.meta.url)
+const windowsTest = process.platform === 'win32' ? test : test.skip
 
 test('the irm helper uses the official DSH plugin command and a fixed package version', async () => {
   const [installer, manifest, compatibility] = await Promise.all([
@@ -15,6 +19,34 @@ test('the irm helper uses the official DSH plugin command and a fixed package ve
   assert.match(installer, /plugin['"],\s*['"]--profile['"],\s*['"]web['"],\s*['"]add['"]/) 
   assert.match(installer, new RegExp(`@deepseek-ai/dsh@${compatibility.latestTested.replaceAll('.', '\\.')}\\b`))
   assert.doesNotMatch(installer, /DSH_PORTABLE_ROOT|dsh\.exe|\\dsh\.exe/)
+  assert.match(installer, /--prefer-offline[\s\S]*--no-audit[\s\S]*--no-fund/u)
+})
+
+windowsTest('a running official DSH is reused instead of starting npx', async t => {
+  const fixture = await mkdtemp(join(tmpdir(), 'dsh-slider-installer-'))
+  t.after(() => rm(fixture, { recursive: true, force: true }))
+  const node = join(fixture, 'node.cmd')
+  const bin = join(fixture, 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js')
+  const nodeLog = join(fixture, 'node-args.txt')
+  const npxLog = join(fixture, 'npx-args.txt')
+  await mkdir(join(bin, '..'), { recursive: true })
+  await writeFile(node, '@echo off\r\n>> "%DSH_INSTALLER_NODE_LOG%" echo %*\r\nexit /b 0\r\n')
+  await writeFile(bin, '')
+  await writeFile(join(fixture, 'node_modules', '@deepseek-ai', 'dsh', 'package.json'), JSON.stringify({ name: '@deepseek-ai/dsh', version: '0.1.1-rc.2' }))
+  await writeFile(join(fixture, 'npx.cmd'), '@echo off\r\n>> "%DSH_INSTALLER_NPX_LOG%" echo %*\r\nexit /b 0\r\n')
+  const quote = value => value.replaceAll("'", "''")
+  const command = [
+    `function global:Get-CimInstance { [pscustomobject]@{ ExecutablePath = '${quote(node)}'; CommandLine = '\"${quote(node)}\" \"${quote(bin)}\" web' } }`,
+    `Get-Content -LiteralPath '${quote(installerPath.pathname.slice(1))}' -Raw | Invoke-Expression`,
+  ].join('; ')
+  const result = spawnSync('powershell.exe', ['-NoProfile', '-Command', command], {
+    cwd: fixture,
+    env: { ...process.env, PATH: `${fixture}${delimiter}${process.env.PATH ?? ''}`, DSH_INSTALLER_NODE_LOG: nodeLog, DSH_INSTALLER_NPX_LOG: npxLog },
+    encoding: 'utf8',
+  })
+  assert.equal(result.status, 0, result.stderr || result.stdout)
+  assert.equal((await readFile(nodeLog, 'utf8')).trim(), `${bin} plugin --profile web add dsh-native-reasoning-slider@0.1.2`)
+  await assert.rejects(readFile(npxLog, 'utf8'), /ENOENT/u)
 })
 
 test('the release publishes the same installer used by the latest irm URL', async () => {
