@@ -46,7 +46,7 @@ windowsTest('a running official DSH is reused instead of starting npx', async t 
     encoding: 'utf8',
   })
   assert.equal(result.status, 0, result.stderr || result.stdout)
-  assert.equal((await readFile(nodeLog, 'utf8')).trim(), `${bin} plugin --profile web add dsh-native-reasoning-slider@0.1.4`)
+  assert.equal((await readFile(nodeLog, 'utf8')).trim(), `${bin} plugin --profile web add dsh-native-reasoning-slider@0.1.5`)
   await assert.rejects(readFile(npxLog, 'utf8'), /ENOENT/u)
 })
 
@@ -65,6 +65,7 @@ windowsTest('a young package already locked in the profile gets one scoped relea
     '  echo [ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION] existing-package@1.0.0 1>&2',
     '  exit /b 1',
     ')',
+    'echo retry succeeded',
     'exit /b 0',
     '',
   ].join('\r\n'))
@@ -82,8 +83,8 @@ windowsTest('a young package already locked in the profile gets one scoped relea
   })
   assert.equal(result.status, 0, result.stderr || result.stdout)
   assert.deepEqual((await readFile(nodeLog, 'utf8')).trim().split(/\r?\n/u), [
-    `${bin} plugin --profile web add dsh-native-reasoning-slider@0.1.4`,
-    `${bin} plugin --profile web add --config.minimumReleaseAge=0 dsh-native-reasoning-slider@0.1.4`,
+    `${bin} plugin --profile web add dsh-native-reasoning-slider@0.1.5`,
+    `${bin} plugin --profile web add --config.minimumReleaseAge=0 dsh-native-reasoning-slider@0.1.5`,
   ])
 })
 

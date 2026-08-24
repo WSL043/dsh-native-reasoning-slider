@@ -2,7 +2,7 @@
 param()
 
 $ErrorActionPreference = 'Stop'
-$packageSpec = 'dsh-native-reasoning-slider@0.1.4'
+$packageSpec = 'dsh-native-reasoning-slider@0.1.5'
 $chinese = [Globalization.CultureInfo]::CurrentUICulture.Name -like 'zh-*'
 
 function Say([string]$ChineseText, [string]$EnglishText) {
@@ -33,8 +33,15 @@ function Invoke-PluginAddWithReleaseAgeRecovery($Invocation, [string]$PackageSpe
     if ($exitCode -ne 0 -and $releaseAgeBlocked) {
         Say '现有锁文件包含仍在发布时间等待期内的版本；正在对此命令进行一次性确认重试…' 'The existing lockfile contains a version still inside the release-age hold; retrying this command once with a scoped confirmation...'
         $retryArguments = @($Invocation.Prefix) + @('plugin', '--profile', 'web', 'add', '--config.minimumReleaseAge=0', $PackageSpec)
-        & $Invocation.Command @retryArguments
-        $exitCode = $LASTEXITCODE
+        $previousErrorAction = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        try {
+            & $Invocation.Command @retryArguments 2>&1 | ForEach-Object { Write-Host ([string]$_) }
+            $exitCode = $LASTEXITCODE
+        }
+        finally {
+            $ErrorActionPreference = $previousErrorAction
+        }
     }
     return $exitCode
 }
