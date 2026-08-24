@@ -5,13 +5,22 @@ import {
   DEFAULT_COLORS,
   MODES,
   advertisedEfforts,
+  energyIntensity,
+  normalizeEnergyStyle,
   modelColorKey,
   normalizeAppearance,
   normalizeMode,
   resolveColors,
   snapEffort,
-  shouldAnimate,
 } from '../src/policy.js'
+
+test('energy intensity gives every four-level effort a deliberate visual weight', () => {
+  assert.equal(energyIntensity(0), 0)
+  assert.equal(energyIntensity(1 / 3), 0.24)
+  assert.equal(energyIntensity(2 / 3), 0.58)
+  assert.equal(energyIntensity(1), 1)
+  assert.ok(energyIntensity(0.5) > 0.24 && energyIntensity(0.5) < 0.58)
+})
 
 test('mode preference supports official, native, and energy without inventing a fourth mode', () => {
   assert.deepEqual(MODES, ['official', 'native', 'energy'])
@@ -20,6 +29,13 @@ test('mode preference supports official, native, and energy without inventing a 
   assert.equal(normalizeMode('energy'), 'energy')
   assert.equal(normalizeMode('unknown'), 'energy')
   assert.equal(normalizeMode(null), 'energy')
+})
+
+test('energy presentation keeps reference as the stable default and compact as beta', () => {
+  assert.equal(normalizeEnergyStyle('reference'), 'reference')
+  assert.equal(normalizeEnergyStyle('compact'), 'compact')
+  assert.equal(normalizeEnergyStyle('unknown'), 'reference')
+  assert.equal(normalizeEnergyStyle(null), 'reference')
 })
 
 test('the slider uses only exact effort levels advertised by the selected model', () => {
@@ -53,13 +69,6 @@ test('continuous pointer positions snap to the nearest advertised effort on comm
   assert.equal(snapEffort([], 50), undefined)
 })
 
-test('energy animation is transient and respects reduced-motion', () => {
-  assert.equal(shouldAnimate({ mode: 'energy', reducedMotion: false, active: true }), true)
-  assert.equal(shouldAnimate({ mode: 'energy', reducedMotion: false, active: false }), false)
-  assert.equal(shouldAnimate({ mode: 'native', reducedMotion: false, active: true }), false)
-  assert.equal(shouldAnimate({ mode: 'energy', reducedMotion: true, active: true }), false)
-})
-
 test('appearance preferences support one palette or model-specific palettes', () => {
   const global = normalizeAppearance({
     scope: 'global',
@@ -79,6 +88,7 @@ test('appearance preferences support one palette or model-specific palettes', ()
 })
 
 test('appearance normalization keeps distinct polished theme defaults and rejects unsafe values', () => {
+  assert.deepEqual(DEFAULT_COLORS, { light: '#8a49ca', dark: '#a857f7' })
   assert.notEqual(DEFAULT_COLORS.light, DEFAULT_COLORS.dark)
   const normalized = normalizeAppearance({
     scope: 'invalid',

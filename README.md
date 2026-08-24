@@ -28,7 +28,7 @@ capabilities or change provider routing.
 - **Efficient:** dragging is local preview; DSH receives one selection on release.
 - **Native:** separates model selection from a 28 px effort pill and follows DSH tokens and contracts.
 - **Personal:** one light/dark palette for every model, or a separate palette for each model.
-- **Accessible:** keyboard input works and reduced-motion disables animation.
+- **Deliberate:** keyboard input works; Native stays still, while choosing Energy explicitly enables motion.
 - **Private:** no credentials, account access, telemetry, or plugin-owned network calls.
 
 ## Three modes, one plugin
@@ -57,15 +57,22 @@ provider-neutral.
 
 ## Install
 
-From an existing DSH installation:
+Beginner-friendly PowerShell helper (it still installs through DSH's official
+plugin command):
+
+```powershell
+irm 'https://github.com/WSL043/dsh-native-reasoning-slider/releases/latest/download/install.ps1' | iex
+```
+
+Or use the official DSH command directly:
 
 ```sh
 dsh plugin --profile web add dsh-native-reasoning-slider
 ```
 
-Then restart DSH. DSH-Portable users can run the same plugin command through
-their bundled `dsh` executable. This plugin is tested against the latest DSH
-release shown in the package metadata.
+Then restart DSH. The same official command works with DSH distributions that
+provide `dsh`. This plugin is tested against the latest DSH release shown in
+the package metadata.
 
 Update or uninstall:
 
@@ -79,8 +86,8 @@ dsh plugin --profile web remove dsh-native-reasoning-slider
 - The selected effort applies through DSH's normal model-selection contract.
 - Models with fewer than two advertised effort levels keep the standard model
   selector and show no artificial slider choices.
-- Energy rendering runs only during interaction and a short settle period. It
-  stops when idle and honors the operating system's reduced-motion preference.
+- Energy rendering runs only while its compact popover is open and the selected
+  level is above Off. Closing the popover unloads it; choose Native for a still control.
 - This plugin does not show DeepSeek balance or quota. Account-specific balance
   access belongs in a separate plugin with explicit permissions and failure UI.
 

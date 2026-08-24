@@ -17,8 +17,10 @@ import {
 import { EnergyField } from './energy.jsx'
 import {
   advertisedEfforts,
+  energyIntensity,
   modelColorKey,
   normalizeAppearance,
+  normalizeEnergyStyle,
   normalizeMode,
   resolveColors,
   snapEffort,
@@ -32,7 +34,9 @@ const SLOT = 'conversation.input.model'
 const SETTINGS_SLOT = 'settings.general.item'
 const STORAGE_KEY = 'dsh-native-reasoning-slider.mode'
 const APPEARANCE_KEY = 'dsh-native-reasoning-slider.appearance.v1'
+const ENERGY_STYLE_KEY = 'dsh-native-reasoning-slider.energy-style'
 const listeners = new Set()
+const energyStyleListeners = new Set()
 const appearanceListeners = new Set()
 const modelChoiceListeners = new Set()
 
@@ -52,6 +56,25 @@ export const modeStore = {
       try { window.localStorage.setItem(STORAGE_KEY, next) } catch { /* preference stays in memory */ }
     }
     listeners.forEach(listener => listener())
+  },
+}
+
+function storedEnergyStyle() {
+  try { return normalizeEnergyStyle(window.localStorage.getItem(ENERGY_STYLE_KEY)) } catch { return 'reference' }
+}
+
+let currentEnergyStyle = typeof window === 'undefined' ? 'reference' : storedEnergyStyle()
+export const energyStyleStore = {
+  getSnapshot: () => currentEnergyStyle,
+  subscribe(listener) { energyStyleListeners.add(listener); return () => energyStyleListeners.delete(listener) },
+  set(style, persist = true) {
+    const next = normalizeEnergyStyle(style)
+    if (next === currentEnergyStyle) return
+    currentEnergyStyle = next
+    if (persist) {
+      try { window.localStorage.setItem(ENERGY_STYLE_KEY, next) } catch { /* preference stays in memory */ }
+    }
+    energyStyleListeners.forEach(listener => listener())
   },
 }
 
@@ -97,6 +120,8 @@ const LOCALES = {
   en: {
     settingTitle: 'Reasoning control', settingDescription: 'Use the official menu, a quiet native slider, or transient energy effects.',
     official: 'Official', native: 'Native', energy: 'Energy', model: 'Model', effort: 'Effort', retry: 'Retry',
+    energyStyle: 'Energy appearance', energyStyleDescription: 'Reference follows the full cellular trail; Compact is an experimental quieter alternative.',
+    referenceEffect: 'Reference', compactEffect: 'Compact · Beta',
     colorAssignment: 'Energy colors', colorDescription: 'Use one palette for every model, or remember a palette for each model.',
     allModels: 'All models', eachModel: 'Per model', lightColor: 'Light appearance', darkColor: 'Dark appearance',
     allModelColors: 'Default palette', allModelColorsDescription: 'Used by every model unless per-model colors are enabled.',
@@ -107,6 +132,8 @@ const LOCALES = {
   zh: {
     settingTitle: '推理强度控制', settingDescription: '可切换官方菜单、安静的原生滑块或短暂能量特效。',
     official: '官方', native: '原生', energy: '能量', model: '模型', effort: '推理强度', retry: '重试',
+    energyStyle: '能量外观', energyStyleDescription: '参考效果保留完整像素拖尾；紧凑效果是更克制的实验选项。',
+    referenceEffect: '参考效果', compactEffect: '紧凑 · Beta',
     colorAssignment: '能量配色', colorDescription: '所有模型使用一套配色，或分别记住每个模型的配色。',
     allModels: '全部模型', eachModel: '按模型', lightColor: '浅色外观', darkColor: '深色外观',
     allModelColors: '默认配色', allModelColorsDescription: '未启用按模型配色时，所有模型使用这组颜色。',
@@ -114,18 +141,6 @@ const LOCALES = {
     loading: '正在加载模型…', noModels: '没有可用模型。', noEfforts: '当前模型未提供推理强度档位。',
     selectionFailed: '设置未保存。{message}', groupFailed: '{name}：{message}', selectModel: '选择模型',
   },
-}
-
-function useReducedMotion() {
-  const [reduced, setReduced] = useState(() => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false)
-  useEffect(() => {
-    const query = window.matchMedia?.('(prefers-reduced-motion: reduce)')
-    if (query === undefined) return undefined
-    const update = () => setReduced(query.matches)
-    query.addEventListener?.('change', update)
-    return () => query.removeEventListener?.('change', update)
-  }, [])
-  return reduced
 }
 
 function useDarkTheme() {
@@ -141,8 +156,8 @@ function useDarkTheme() {
 
 function EffortSlider({ current, reasoning, select, busy, mode, onFailure, t }) {
   const appearance = useSyncExternalStore(appearanceStore.subscribe, appearanceStore.getSnapshot)
+  const energyStyle = useSyncExternalStore(energyStyleStore.subscribe, energyStyleStore.getSnapshot)
   const dark = useDarkTheme()
-  const reducedMotion = useReducedMotion()
   const efforts = advertisedEfforts(reasoning)
   const effective = current?.reasoningEffort ?? reasoning?.defaultEffort
   const currentIndex = Math.max(0, efforts.findIndex(entry => entry.id === effective))
@@ -159,10 +174,14 @@ function EffortSlider({ current, reasoning, select, busy, mode, onFailure, t }) 
   const snapped = snapEffort(efforts, preview)
   const active = dragging || settling
   const ratio = preview / 100
-  const intensity = ratio === 0 ? 0 : .18 + Math.pow(ratio, .82) * .82
+  const sliderStep = 100 / (efforts.length - 1)
+  const previewIndex = preview / sliderStep
+  const energized = ratio > 0
+  const intensity = energyIntensity(ratio)
   const colors = resolveColors(appearance, current.provider, current.model)
   const energyColor = dark ? colors.dark : colors.light
-  const previewOnly = event => setPreview(Number(event.currentTarget.value))
+  const indexToPosition = index => Number(index) * sliderStep
+  const previewOnly = event => setPreview(indexToPosition(event.currentTarget.value))
   const commitAt = async position => {
     setDragging(false)
     if (committing.current) return
@@ -198,25 +217,25 @@ function EffortSlider({ current, reasoning, select, busy, mode, onFailure, t }) 
   }
   const currentLabel = snapped?.name ?? effective ?? ''
   return (
-    <section className={`nrs-effort ${mode === 'energy' ? 'is-energy' : ''} ${active ? 'is-active' : ''} ${preview >= 99 ? 'is-max' : ''}`} style={{ '--nrs-ratio': ratio, '--nrs-color': energyColor }}>
+    <section className={`nrs-effort ${mode === 'energy' ? 'is-energy' : ''} ${active ? 'is-active' : ''} ${preview >= 99 ? 'is-max' : ''}`} style={{ '--nrs-ratio': ratio, '--nrs-intensity': intensity, '--nrs-canvas-opacity': .24 + intensity * .76, '--nrs-energy-opacity': dark ? .2 + intensity * .42 : .12 + intensity * .34, '--nrs-dots-opacity': 1 - intensity * .72, '--nrs-color': energyColor }}>
       <div className="nrs-levels">
         {efforts.map(entry => <button type="button" className={`nrs-level ${snapped?.id === entry.id ? 'is-current' : ''}`} key={entry.id} disabled={busy} onClick={() => { void choose(entry) }}>{entry.name}</button>)}
       </div>
       <div className="nrs-track-wrap">
-        <div className="nrs-track-fill" aria-hidden="true" />
-        <div className="nrs-track-glow" aria-hidden="true" />
-        <div className="nrs-track-flare" aria-hidden="true" />
-        {mode === 'energy' ? <EnergyField active={active} color={energyColor} intensity={intensity} light={!dark} ratio={ratio} reducedMotion={reducedMotion} /> : null}
+        <div className="nrs-track-background" aria-hidden="true" />
+        <div className="nrs-energy-bed" aria-hidden="true" />
+        <div className="nrs-track-dots" aria-hidden="true">{efforts.map(entry => <i key={entry.id} />)}</div>
+        {mode === 'energy' ? <EnergyField active={energized} color={energyColor} intensity={intensity} light={!dark} ratio={ratio} styleVariant={energyStyle} /> : null}
         <div className="nrs-track-thumb" aria-hidden="true" />
         <input
-          className="nrs-range" type="range" min="0" max="100" step="0.1" value={preview} disabled={busy}
+          className="nrs-range" type="range" min="0" max={efforts.length - 1} step="1" value={previewIndex} disabled={busy}
           aria-label={t('effort')} aria-valuetext={currentLabel}
           onInput={previewOnly}
           onPointerDown={() => setDragging(true)}
-          onPointerUp={event => { void commitAt(Number(event.currentTarget.value)) }}
+          onPointerUp={event => { void commitAt(indexToPosition(event.currentTarget.value)) }}
           onPointerCancel={() => { setDragging(false); setPreview(committed) }}
           onKeyDown={onSliderKeyDown}
-          onBlur={event => { if (dragging) void commitAt(Number(event.currentTarget.value)) }}
+          onBlur={event => { if (dragging) void commitAt(indexToPosition(event.currentTarget.value)) }}
         />
       </div>
     </section>
@@ -364,6 +383,7 @@ function ModelSettingsMenu({ choices, onSelect, selected, t }) {
 
 function PluginSettings({ t }) {
   const mode = useSyncExternalStore(modeStore.subscribe, modeStore.getSnapshot)
+  const energyStyle = useSyncExternalStore(energyStyleStore.subscribe, energyStyleStore.getSnapshot)
   const appearance = useSyncExternalStore(appearanceStore.subscribe, appearanceStore.getSnapshot)
   const modelColorChoices = useSyncExternalStore(modelChoicesStore.subscribe, modelChoicesStore.getSnapshot)
   const scope = appearance.scope === 'model' ? 'eachModel' : 'allModels'
@@ -380,6 +400,7 @@ function PluginSettings({ t }) {
   }
   return <>
     <div className="nrs-mode-row"><div className="nrs-mode-copy"><div className="nrs-mode-title">{t('settingTitle')}</div><div className="nrs-mode-description">{t('settingDescription')}</div></div><SettingsMenu items={['official', 'native', 'energy']} selected={mode} onSelect={modeStore.set} t={t} /></div>
+    {mode === 'energy' ? <div className="nrs-mode-row"><div className="nrs-mode-copy"><div className="nrs-mode-title">{t('energyStyle')}</div><div className="nrs-mode-description">{t('energyStyleDescription')}</div></div><SettingsMenu items={['referenceEffect', 'compactEffect']} selected={energyStyle === 'compact' ? 'compactEffect' : 'referenceEffect'} onSelect={entry => energyStyleStore.set(entry === 'compactEffect' ? 'compact' : 'reference')} t={t} /></div> : null}
     <div className="nrs-mode-row"><div className="nrs-mode-copy"><div className="nrs-mode-title">{t('colorAssignment')}</div><div className="nrs-mode-description">{t('colorDescription')}</div></div><SettingsMenu items={['allModels', 'eachModel']} selected={scope} onSelect={entry => appearanceStore.setScope(entry === 'eachModel' ? 'model' : 'global')} t={t} /></div>
     <div className="nrs-mode-row"><div className="nrs-mode-copy"><div className="nrs-mode-title">{t(appearance.scope === 'model' ? 'modelColors' : 'allModelColors')}</div><div className="nrs-mode-description">{t(appearance.scope === 'model' ? 'modelColorsDescription' : 'allModelColorsDescription')}</div></div><div className="nrs-setting-actions">{appearance.scope === 'model' ? <ModelSettingsMenu choices={modelColorChoices} selected={selectedPaletteModel} onSelect={setSelectedPaletteModel} t={t} /> : null}<ColorInput disabled={appearance.scope === 'model' && selectedChoice === undefined} label={t('lightColor')} value={palette.light} onChange={value => setPaletteColor('light', value)} /><ColorInput disabled={appearance.scope === 'model' && selectedChoice === undefined} label={t('darkColor')} value={palette.dark} onChange={value => setPaletteColor('dark', value)} /></div></div>
   </>

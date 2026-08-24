@@ -64,11 +64,15 @@ jobs:
         run: |
           mkdir -p .candidate
           cp .artifacts/dsh-native-reasoning-slider-${{ needs.preflight.outputs.version }}.tgz .candidate/dsh-native-reasoning-slider.tgz
+          cp install.ps1 .candidate/install.ps1
           test -s .candidate/dsh-native-reasoning-slider.tgz
+          test -s .candidate/install.ps1
       - uses: actions/upload-artifact@v7
         with:
           name: release-candidate-${{ github.sha }}
-          path: .candidate/dsh-native-reasoning-slider.tgz
+          path: |
+            .candidate/dsh-native-reasoning-slider.tgz
+            .candidate/install.ps1
           if-no-files-found: error
 
   windows:
@@ -109,9 +113,15 @@ jobs:
           - Adds separate compact model and effort pills to the DSH composer.
           - Opens the model's exact advertised effort levels in a small native popover.
           - Adds polished light and dark Energy colors, with global or per-model palettes.
-          - Uses an independent WebGL effect with idle shutdown, graceful fallback, and reduced-motion support.
+          - Uses an independent WebGL effect only while its popover is open; Native remains the still alternative.
 
           ## Install
+
+          ```powershell
+          irm 'https://github.com/WSL043/dsh-native-reasoning-slider/releases/latest/download/install.ps1' | iex
+          ```
+
+          Or use the official command:
 
           ```sh
           dsh plugin --profile web add dsh-native-reasoning-slider
@@ -124,7 +134,13 @@ jobs:
           - 输入框中使用独立、紧凑的模型与推理强度胶囊。
           - 点击强度胶囊后，展开当前模型真实提供的档位。
           - 能量模式支持浅色/深色默认配色、统一配色和按模型配色。
-          - 独立 WebGL 效果会在空闲时停止，并支持降级与系统减少动态效果设置。
+          - 独立 WebGL 效果只在弹层打开时运行；不需要动态时可切换原生模式。
+
+          ```powershell
+          irm 'https://github.com/WSL043/dsh-native-reasoning-slider/releases/latest/download/install.ps1' | iex
+          ```
+
+          或直接使用官方命令：
 
           ```sh
           dsh plugin --profile web add dsh-native-reasoning-slider
@@ -138,7 +154,7 @@ jobs:
           RELEASE_TAG: ${{ needs.preflight.outputs.tag }}
         shell: bash
         run: |
-          gh release create "$RELEASE_TAG" .candidate/dsh-native-reasoning-slider.tgz \
+          gh release create "$RELEASE_TAG" .candidate/dsh-native-reasoning-slider.tgz .candidate/install.ps1 \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "$RELEASE_TAG" \
             --notes-file .candidate/release.md --latest
 

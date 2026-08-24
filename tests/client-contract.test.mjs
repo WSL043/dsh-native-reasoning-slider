@@ -23,10 +23,14 @@ test('official mode removes the shadow seat while native and energy modes keep i
 test('dragging previews locally and commits through the DSH selection contract', async () => {
   const client = await readFile(clientPath, 'utf8')
   assert.match(client, /onInput=\{previewOnly\}/)
-  assert.match(client, /onPointerUp=\{event\s*=>\s*\{\s*void commitAt\(Number\(event\.currentTarget\.value\)\)\s*\}\}/)
+  assert.match(client, /onPointerUp=\{event\s*=>\s*\{\s*void commitAt\(indexToPosition\(event\.currentTarget\.value\)\)\s*\}\}/)
   assert.doesNotMatch(client, /const commitPreview\s*=/)
   assert.match(client, /reasoningEffort:\s*effort\.id/)
   assert.doesNotMatch(client, /onInput=\{[^}]*select\(/s)
+  assert.match(client, /const sliderStep = 100 \/ \(efforts\.length - 1\)/)
+  assert.match(client, /const previewIndex = preview \/ sliderStep/)
+  assert.match(client, /const indexToPosition = index => Number\(index\) \* sliderStep/)
+  assert.match(client, /max=\{efforts\.length - 1\} step="1" value=\{previewIndex\}/)
 })
 
 test('keyboard input moves between advertised effort levels instead of decimal range steps', async () => {
@@ -54,15 +58,29 @@ test('model and effort use separate compact triggers and popovers', async () => 
   assert.doesNotMatch(client, /<span className="nrs-trigger-effort"/)
 })
 
-test('energy rendering has reduced-motion and transient lifecycle gates', async () => {
+test('energy rendering is explicit in Energy mode and uses the sample lifecycle', async () => {
   const client = await readFile(clientPath, 'utf8')
-  assert.match(client, /prefers-reduced-motion:\s*reduce/)
   assert.match(client, /settling/)
   assert.match(client, /mode\s*===\s*['"]energy['"]/)
-  assert.match(client, /className="nrs-track-glow"/)
-  assert.match(client, /className="nrs-track-flare"/)
+  assert.match(client, /const energized = ratio > 0/)
+  assert.match(client, /<EnergyField active=\{energized\}/)
+  assert.doesNotMatch(client, /reducedMotion=/)
+  assert.match(client, /className="nrs-track-background"/)
+  assert.match(client, /className="nrs-energy-bed"/)
+  assert.match(client, /className="nrs-track-dots"/)
   assert.match(client, /className="nrs-track-thumb"/)
   assert.match(client, /effort\.id === efforts\[efforts\.length - 1\]\.id \? 1840 : 620/)
+})
+
+test('energy presentation is selected in Settings and never inside the composer', async () => {
+  const client = await readFile(new URL('../src/client.jsx', import.meta.url), 'utf8')
+  const effortSlider = client.slice(client.indexOf('function EffortSlider'), client.indexOf('function ModelSliderSelect'))
+  const pluginSettings = client.slice(client.indexOf('function PluginSettings'), client.indexOf('export function register'))
+  assert.match(client, /energyStyleStore/)
+  assert.match(pluginSettings, /referenceEffect/)
+  assert.match(pluginSettings, /compactEffect/)
+  assert.doesNotMatch(effortSlider, /SettingsMenu/)
+  assert.match(client, /styleVariant=\{energyStyle\}/)
 })
 
 test('appearance preferences are local, theme-aware, and support per-model colors', async () => {

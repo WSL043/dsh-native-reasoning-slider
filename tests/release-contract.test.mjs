@@ -19,3 +19,9 @@ test('release is main-only, immutable, and uses current action runtimes', async 
   assert.match(workflow, /pnpm\/action-setup@v6/)
   assert.match(workflow, /actions\/setup-node@v7/)
 })
+
+test('release carries both the accepted package and installer between jobs', async () => {
+  const workflow = await readFile(new URL('../.github/workflows/release.yml', import.meta.url), 'utf8')
+  assert.match(workflow, /path:\s*\|[\s\S]*\.candidate\/dsh-native-reasoning-slider\.tgz[\s\S]*\.candidate\/install\.ps1/)
+  assert.match(workflow, /gh release create[^\n]*\.candidate\/dsh-native-reasoning-slider\.tgz \.candidate\/install\.ps1/)
+})

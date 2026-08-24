@@ -1,5 +1,6 @@
 export const MODES = Object.freeze(['official', 'native', 'energy'])
-export const DEFAULT_COLORS = Object.freeze({ light: '#416fca', dark: '#9b82ff' })
+export const ENERGY_STYLES = Object.freeze(['reference', 'compact'])
+export const DEFAULT_COLORS = Object.freeze({ light: '#8a49ca', dark: '#a857f7' })
 const MAX_MODEL_COLORS = 64
 const MAX_MODEL_KEY_PART = 256
 const HEX_COLOR = /^#[0-9a-f]{6}$/i
@@ -59,6 +60,10 @@ export function normalizeMode(value) {
   return MODES.includes(value) ? value : 'energy'
 }
 
+export function normalizeEnergyStyle(value) {
+  return ENERGY_STYLES.includes(value) ? value : 'reference'
+}
+
 export function advertisedEfforts(reasoning) {
   const efforts = reasoning?.efforts
   if (!Array.isArray(efforts) || efforts.length < 2) return []
@@ -79,6 +84,11 @@ export function snapEffort(efforts, position) {
   return efforts[index]
 }
 
-export function shouldAnimate({ mode, reducedMotion, active }) {
-  return mode === 'energy' && reducedMotion !== true && active === true
+export function energyIntensity(ratio) {
+  const bounded = Math.max(0, Math.min(1, Number.isFinite(ratio) ? ratio : 0))
+  const stops = [0, 0.24, 0.58, 1]
+  const scaled = bounded * (stops.length - 1)
+  const left = Math.min(stops.length - 2, Math.floor(scaled))
+  const progress = scaled - left
+  return stops[left] + (stops[left + 1] - stops[left]) * progress
 }
