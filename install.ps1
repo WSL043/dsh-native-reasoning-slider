@@ -2,7 +2,7 @@
 param()
 
 $ErrorActionPreference = 'Stop'
-$packageSpec = 'dsh-native-reasoning-slider@0.1.6'
+$packageSpec = 'dsh-native-reasoning-slider@0.1.7'
 $chinese = [Globalization.CultureInfo]::CurrentUICulture.Name -like 'zh-*'
 
 function Say([string]$ChineseText, [string]$EnglishText) {

@@ -25,6 +25,12 @@ test('the composer stays one row and the effort popover is compact', async () =>
   assert.doesNotMatch(source, /\.nrs-effort-head/)
 })
 
+test('energy appears promptly without a long opacity ramp', async () => {
+  const source = await readFile(new URL('../src/styles.js', import.meta.url), 'utf8')
+  assert.match(source, /\.nrs-energy\{[^}]*transition:opacity \.08s ease/u)
+  assert.doesNotMatch(source, /\.nrs-energy\{[^}]*transition:opacity \.28s ease/u)
+})
+
 test('the energy capsule follows the selected sample 7 geometry and settings remain readable', async () => {
   const source = await readFile(new URL('../src/styles.js', import.meta.url), 'utf8')
   assert.match(source, /\.nrs-track-wrap\{[^}]*--nrs-thumb-center:calc\(14px \+ \(100% - 28px\) \* var\(--nrs-ratio\)\)[^}]*height:28px[^}]*border-radius:9px/)

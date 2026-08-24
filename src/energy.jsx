@@ -32,15 +32,16 @@ void main(){
 
   vec3 history=texture(u_previous,coordinate).rgb;
   float leftFade=0.10+0.90*smoothstep(0.0,0.12,coordinate.x);
-  vec3 retained=history*0.90*leftFade;
+  vec3 retained=history*0.84*leftFade;
   float enabled=smoothstep(0.001,0.05,u_intensity);
   if(enabled<0.01||u_elapsed<0.0){outputColor=vec4(retained,1.0);return;}
 
-  float progressAge=max(u_elapsed-randomValue*1.2,0.0);
+  float progressAge=max(u_elapsed-randomValue*0.35,0.0);
   float started=step(0.001,progressAge);
   float cellVelocity=0.85+randomValue*0.30;
-  float cubicProgress=1.0-pow(1.0-clamp(progressAge/2.5,0.0,1.0),3.0);
-  float traveled=cubicProgress*u_ratio*cellVelocity*started;
+  float cubicProgress=1.0-pow(1.0-clamp(progressAge/1.05,0.0,1.0),3.0);
+  float trailReach=mix(0.62,0.70,u_intensity);
+  float traveled=cubicProgress*u_ratio*trailReach*cellVelocity*started;
   float leadingEdge=max(u_ratio-traveled-(randomValue-0.5)*0.05,0.02);
   float trailSpan=max(u_ratio-leadingEdge,0.001);
   float withinTrail=step(leadingEdge-0.003,coordinate.x)*step(coordinate.x,u_ratio+0.003);
@@ -49,7 +50,7 @@ void main(){
   brightness=max(brightness,0.04*started)*withinTrail;
   brightness*=1.0-smoothstep(0.94,1.05,distanceBehind);
 
-  float energyScale=mix(0.12,0.42,min(u_elapsed,1.0));
+  float energyScale=mix(0.24,0.46,min(u_elapsed,0.75));
   float verticalDistance=abs(coordinate.y-0.5)*2.0;
   float verticalShape=pow(max(1.0-verticalDistance*verticalDistance*0.45,0.0),0.75);
   float timeScale=mix(0.85,1.0,min(u_elapsed/1.5,1.0));
@@ -92,12 +93,12 @@ void main(){
   energyColor=mix(energyColor,warmWhite,pow(heat,1.8))*activity;
   energyColor*=cellMask*leftFade;
   float maxTailGate=smoothstep(0.995,1.0,u_ratio);
-  float maxTailEnvelope=1.0-smoothstep(0.0,0.34,coordinate.x);
-  float maxTailFront=mix(1.02,-0.06,u_max_reveal);
-  float maxTailReveal=smoothstep(maxTailFront-0.08,maxTailFront+0.02,coordinate.x);
+  float maxTailFront=max(leadingEdge-mix(0.0,0.16,u_max_reveal),0.08);
+  float maxTailEnvelope=smoothstep(maxTailFront-0.02,maxTailFront+0.03,coordinate.x);
+  maxTailEnvelope*=1.0-smoothstep(leadingEdge-0.03,leadingEdge+0.02,coordinate.x);
   float maxTailPhase=sin(coordinate.x*38.0-u_time*4.0+secondaryNoise*6.28)*0.5+0.5;
   float maxTailMotion=0.18+0.82*smoothstep(0.15,0.85,maxTailPhase);
-  float maxTailCells=cellMask*maxTailEnvelope*maxTailGate*maxTailReveal;
+  float maxTailCells=cellMask*maxTailEnvelope*maxTailGate*step(0.72,secondaryNoise);
   energyColor+=u_color*maxTailCells*(0.07+0.15*maxTailMotion)*energyScale;
   outputColor=vec4(min(retained+energyColor,vec3(1.5)),1.0);
 }`
@@ -212,8 +213,8 @@ export function EnergyField({ active, color, intensity, light, ratio, styleVaria
       if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program) ?? 'Shader link failed')
       return program
     }
-    const referenceSimulation = createProgram(REFERENCE_SIMULATION)
-    const compactSimulation = createProgram(COMPACT_SIMULATION)
+    const simulationSource = styleVariant === 'compact' ? COMPACT_SIMULATION : REFERENCE_SIMULATION
+    const simulation = createProgram(simulationSource)
     const blur = createProgram(BLUR)
     const composite = createProgram(COMPOSITE)
     const vao = gl.createVertexArray()
@@ -225,8 +226,8 @@ export function EnergyField({ active, color, intensity, light, ratio, styleVaria
     const simulationLocations = program => ({
       previous: uniform(program, 'u_previous'), time: uniform(program, 'u_time'), ratio: uniform(program, 'u_ratio'), intensity: uniform(program, 'u_intensity'), elapsed: uniform(program, 'u_elapsed'), maxReveal: uniform(program, 'u_max_reveal'), color: uniform(program, 'u_color'),
     })
+    const sim = simulationLocations(simulation)
     const locations = {
-      reference: simulationLocations(referenceSimulation), compact: simulationLocations(compactSimulation),
       blurTexture: uniform(blur, 'u_texture'), blurResolution: uniform(blur, 'u_resolution'), blurDirection: uniform(blur, 'u_direction'), blurRejectDim: uniform(blur, 'u_rejectDim'),
       compositeScene: uniform(composite, 'u_scene'), compositeBloom: uniform(composite, 'u_bloom'), compositeLight: uniform(composite, 'u_light'),
     }
@@ -235,7 +236,6 @@ export function EnergyField({ active, color, intensity, light, ratio, styleVaria
     let inactive = 0
     let running = true
     let previousActive = false
-    let previousVariant = values.current.styleVariant
     let previousRatio = values.current.ratio
     let activatedAt = performance.now()
     let maxEnteredAt = values.current.ratio >= 0.995 ? performance.now() : Number.POSITIVE_INFINITY
@@ -271,16 +271,12 @@ export function EnergyField({ active, color, intensity, light, ratio, styleVaria
       if (!running) return
       resize()
       const state = values.current
-      if (state.styleVariant !== previousVariant) {
-        previousVariant = state.styleVariant
-        activatedAt = now
-        clearSimulation()
-      }
       if (Math.abs(state.ratio - previousRatio) > 0.001) {
         if (state.ratio >= 0.995 && previousRatio < 0.995) maxEnteredAt = now
         if (state.ratio < 0.995) maxEnteredAt = Number.POSITIVE_INFINITY
         activatedAt = now
         previousRatio = state.ratio
+        clearSimulation()
       }
       if (state.active && !previousActive) { activatedAt = now; clearSimulation() }
       previousActive = state.active
@@ -289,12 +285,10 @@ export function EnergyField({ active, color, intensity, light, ratio, styleVaria
       const [red, green, blue] = hexRgb(state.color)
       const time = now / 1000
       const elapsed = state.active ? (now - activatedAt) / 1000 : -1
-      const maxRevealProgress = Number.isFinite(maxEnteredAt) ? Math.min(1, Math.max(0, (now - maxEnteredAt) / 900)) : 0
+      const maxRevealProgress = Number.isFinite(maxEnteredAt) ? Math.min(1, Math.max(0, (now - maxEnteredAt) / 520)) : 0
       const maxReveal = maxRevealProgress * maxRevealProgress * (3 - 2 * maxRevealProgress)
       gl.viewport(0, 0, canvas.width, canvas.height); gl.bindVertexArray(vao)
 
-      const simulation = state.styleVariant === 'compact' ? compactSimulation : referenceSimulation
-      const sim = state.styleVariant === 'compact' ? locations.compact : locations.reference
       gl.bindFramebuffer(gl.FRAMEBUFFER, scene.framebuffer); gl.useProgram(simulation)
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, back.texture); gl.uniform1i(sim.previous, 0)
       gl.uniform1f(sim.time, time); gl.uniform1f(sim.ratio, state.ratio); gl.uniform1f(sim.intensity, state.intensity); gl.uniform1f(sim.elapsed, elapsed); gl.uniform1f(sim.maxReveal, maxReveal)
@@ -322,9 +316,9 @@ export function EnergyField({ active, color, intensity, light, ratio, styleVaria
       running = false; wakeRef.current = () => {}; cancelAnimationFrame(frame); observer.disconnect()
       canvas.removeEventListener('webglcontextlost', onContextLost); canvas.removeEventListener('webglcontextrestored', onContextRestored)
       if (!gl.isContextLost()) {
-        destroyTargets(); gl.deleteProgram(referenceSimulation); gl.deleteProgram(compactSimulation); gl.deleteProgram(blur); gl.deleteProgram(composite); gl.deleteVertexArray(vao); gl.deleteBuffer(buffer)
+        destroyTargets(); gl.deleteProgram(simulation); gl.deleteProgram(blur); gl.deleteProgram(composite); gl.deleteVertexArray(vao); gl.deleteBuffer(buffer)
       }
     }
-  }, [generation])
+  }, [generation, styleVariant])
   return <canvas ref={canvasRef} className="nrs-energy" aria-hidden="true" />
 }
