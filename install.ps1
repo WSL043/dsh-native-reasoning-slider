@@ -2,7 +2,7 @@
 param()
 
 $ErrorActionPreference = 'Stop'
-$packageSpec = 'dsh-native-reasoning-slider@0.1.5'
+$packageSpec = 'dsh-native-reasoning-slider@0.1.6'
 $chinese = [Globalization.CultureInfo]::CurrentUICulture.Name -like 'zh-*'
 
 function Say([string]$ChineseText, [string]$EnglishText) {
@@ -60,7 +60,13 @@ function Get-OfficialDshInvocation([string]$Node, [string]$Bin) {
 
 function Get-DshFromProductRoot([string]$Root) {
     if (-not $Root) { return $null }
-    return Get-OfficialDshInvocation (Join-Path $Root 'runtime\node\node.exe') (Join-Path $Root 'app\node_modules\@deepseek-ai\dsh\lib\bin.js')
+    $official = Get-OfficialDshInvocation (Join-Path $Root 'runtime\node\node.exe') (Join-Path $Root 'app\node_modules\@deepseek-ai\dsh\lib\bin.js')
+    if (-not $official) { return $null }
+    $launcher = Join-Path $Root 'dsh.exe'
+    if (Test-Path -LiteralPath $launcher -PathType Leaf) {
+        return New-DshInvocation (Resolve-Path -LiteralPath $launcher).Path @() "DSH-Portable ($($official.Label))"
+    }
+    return $official
 }
 
 function Find-DshFromCurrentDirectory {

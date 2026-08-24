@@ -18,7 +18,8 @@ test('the irm helper uses an existing official DSH command and never cold-instal
   assert.match(installer, new RegExp(`dsh-native-reasoning-slider@${manifest.version.replaceAll('.', '\\.')}\\b`))
   assert.match(installer, /plugin['"],\s*['"]--profile['"],\s*['"]web['"],\s*['"]add['"]/) 
   assert.match(installer, /@deepseek-ai[\\\\/]dsh/u)
-  assert.doesNotMatch(installer, /DSH_PORTABLE_ROOT|dsh\.exe|\\dsh\.exe/)
+  assert.doesNotMatch(installer, /DSH_PORTABLE_ROOT|\.\\dsh\.exe/u)
+  assert.match(installer, /runtime[\\/]node[\\/]node\.exe[\s\S]*@deepseek-ai[\\/]dsh[\\/]lib[\\/]bin\.js[\s\S]*dsh\.exe/u)
   assert.doesNotMatch(installer, /\bnpx\b|--prefer-offline|--no-audit|--no-fund/u)
   assert.match(installer, /DSH was not found[\s\S]*Install or start DeepSeek Harness/u)
 })
@@ -46,7 +47,7 @@ windowsTest('a running official DSH is reused instead of starting npx', async t 
     encoding: 'utf8',
   })
   assert.equal(result.status, 0, result.stderr || result.stdout)
-  assert.equal((await readFile(nodeLog, 'utf8')).trim(), `${bin} plugin --profile web add dsh-native-reasoning-slider@0.1.5`)
+  assert.equal((await readFile(nodeLog, 'utf8')).trim(), `${bin} plugin --profile web add dsh-native-reasoning-slider@0.1.6`)
   await assert.rejects(readFile(npxLog, 'utf8'), /ENOENT/u)
 })
 
@@ -83,8 +84,8 @@ windowsTest('a young package already locked in the profile gets one scoped relea
   })
   assert.equal(result.status, 0, result.stderr || result.stdout)
   assert.deepEqual((await readFile(nodeLog, 'utf8')).trim().split(/\r?\n/u), [
-    `${bin} plugin --profile web add dsh-native-reasoning-slider@0.1.5`,
-    `${bin} plugin --profile web add --config.minimumReleaseAge=0 dsh-native-reasoning-slider@0.1.5`,
+    `${bin} plugin --profile web add dsh-native-reasoning-slider@0.1.6`,
+    `${bin} plugin --profile web add --config.minimumReleaseAge=0 dsh-native-reasoning-slider@0.1.6`,
   ])
 })
 
