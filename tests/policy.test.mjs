@@ -31,11 +31,12 @@ test('mode preference supports official, native, and energy without inventing a 
   assert.equal(normalizeMode(null), 'energy')
 })
 
-test('energy presentation keeps reference as the stable default and compact as beta', () => {
+test('energy presentation keeps continuous as the stable default, reference as compatibility, and compact as beta', () => {
+  assert.equal(normalizeEnergyStyle('continuous'), 'continuous')
   assert.equal(normalizeEnergyStyle('reference'), 'reference')
   assert.equal(normalizeEnergyStyle('compact'), 'compact')
-  assert.equal(normalizeEnergyStyle('unknown'), 'reference')
-  assert.equal(normalizeEnergyStyle(null), 'reference')
+  assert.equal(normalizeEnergyStyle('unknown'), 'continuous')
+  assert.equal(normalizeEnergyStyle(null), 'continuous')
 })
 
 test('the slider uses only exact effort levels advertised by the selected model', () => {

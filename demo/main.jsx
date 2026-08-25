@@ -26,6 +26,7 @@ function Demo() {
   const [level, setLevel] = useState(3)
   const [preview, setPreview] = useState(100)
   const [theme, setTheme] = useState('system')
+  const [style, setStyle] = useState('continuous')
   const [dark, setDark] = useState(prefersDark)
   const [colors, setColors] = useState(DEFAULTS)
   useEffect(() => {
@@ -56,12 +57,13 @@ function Demo() {
         <div className="track">
           <div className="track-bg" />
           <div className="dots">{LEVELS.map(name => <i key={name} />)}</div>
-          <EnergyField active={level > 0} color={color} intensity={intensity} light={!dark} ratio={ratio} styleVariant="reference" />
+          <EnergyField active={style === 'reference' ? ratio >= 0.95 : ratio > 0} color={color} intensity={intensity} light={!dark} ratio={ratio} styleVariant={style} />
           <div className="thumb" />
           <input aria-label="Reasoning effort" aria-valuetext={LEVELS[level]} type="range" min="0" max="100" step="0.1" value={preview} onInput={event => setPreview(Number(event.currentTarget.value))} onPointerUp={event => snap(event.currentTarget.value)} onKeyUp={event => snap(event.currentTarget.value)} />
         </div>
       </div>
       <div className="controls">
+        <fieldset><legend>Renderer</legend><div className="segmented">{[['continuous', 'Continuous'], ['reference', 'Reference'], ['compact', 'Compact · Beta']].map(([value, label]) => <button type="button" className={style === value ? 'selected' : ''} key={value} onClick={() => setStyle(value)}>{label}</button>)}</div></fieldset>
         <fieldset><legend>Appearance</legend><div className="segmented">{['system', 'dark', 'light'].map(value => <button type="button" className={theme === value ? 'selected' : ''} key={value} onClick={() => setTheme(value)}>{value[0].toUpperCase() + value.slice(1)}</button>)}</div></fieldset>
         <div className="palettes"><PaletteControl label="Light palette" presets={PRESETS.light} value={colors.light} onChange={value => setColors(current => ({ ...current, light: value }))} /><PaletteControl label="Dark palette" presets={PRESETS.dark} value={colors.dark} onChange={value => setColors(current => ({ ...current, dark: value }))} /></div>
       </div>

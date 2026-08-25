@@ -2,11 +2,18 @@
 param()
 
 $ErrorActionPreference = 'Stop'
-$packageSpec = 'dsh-native-reasoning-slider@0.1.7'
+$packageSpec = 'dsh-native-reasoning-slider@0.1.8'
 $chinese = [Globalization.CultureInfo]::CurrentUICulture.Name -like 'zh-*'
 
 function Say([string]$ChineseText, [string]$EnglishText) {
     Write-Host $(if ($chinese) { $ChineseText } else { $EnglishText })
+}
+
+function ConvertFrom-NativeOutput($Value) {
+    if ($Value -is [Management.Automation.ErrorRecord]) {
+        return [string]$Value.Exception.Message
+    }
+    return [string]$Value
 }
 
 function New-DshInvocation([string]$Command, [string[]]$Prefix, [string]$Label) {
@@ -20,7 +27,7 @@ function Invoke-PluginAddWithReleaseAgeRecovery($Invocation, [string]$PackageSpe
     $ErrorActionPreference = 'Continue'
     try {
         & $Invocation.Command @arguments 2>&1 | ForEach-Object {
-            $line = [string]$_
+            $line = ConvertFrom-NativeOutput $_
             $lines.Add($line)
             Write-Host $line
         }
@@ -36,7 +43,7 @@ function Invoke-PluginAddWithReleaseAgeRecovery($Invocation, [string]$PackageSpe
         $previousErrorAction = $ErrorActionPreference
         $ErrorActionPreference = 'Continue'
         try {
-            & $Invocation.Command @retryArguments 2>&1 | ForEach-Object { Write-Host ([string]$_) }
+            & $Invocation.Command @retryArguments 2>&1 | ForEach-Object { Write-Host (ConvertFrom-NativeOutput $_) }
             $exitCode = $LASTEXITCODE
         }
         finally {
@@ -115,22 +122,33 @@ function Find-CommonDsh {
     return $null
 }
 
-$dshCommand = Get-Command dsh -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
-$invocation = if ($dshCommand) {
-    New-DshInvocation $dshCommand.Source @() 'DSH on PATH'
-} else {
-    Find-DshFromCurrentDirectory
-}
-if (-not $invocation) { $invocation = Find-RunningOfficialDsh }
-if (-not $invocation) { $invocation = Find-CommonDsh }
-if (-not $invocation) {
-    throw 'DSH was not found. Install or start DeepSeek Harness, or run this helper from the DSH product folder. The helper will not temporarily install the full DSH dependency tree.'
-}
+$previousConsoleOutputEncoding = [Console]::OutputEncoding
+$previousPipelineOutputEncoding = $OutputEncoding
+$utf8 = New-Object Text.UTF8Encoding $false
+[Console]::OutputEncoding = $utf8
+$OutputEncoding = $utf8
+try {
+    $dshCommand = Get-Command dsh -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    $invocation = if ($dshCommand) {
+        New-DshInvocation $dshCommand.Source @() 'DSH on PATH'
+    } else {
+        Find-DshFromCurrentDirectory
+    }
+    if (-not $invocation) { $invocation = Find-RunningOfficialDsh }
+    if (-not $invocation) { $invocation = Find-CommonDsh }
+    if (-not $invocation) {
+        throw 'DSH was not found. Install or start DeepSeek Harness, or run this helper from the DSH product folder. The helper will not temporarily install the full DSH dependency tree.'
+    }
 
-Say "目标：$($invocation.Label)" "Target: $($invocation.Label)"
-Say '正在通过 DSH 官方插件命令安装…' 'Installing through the official DSH plugin command...'
-$exitCode = Invoke-PluginAddWithReleaseAgeRecovery $invocation $packageSpec
-if ($exitCode -ne 0) {
-    throw "DSH plugin command failed with exit code $exitCode."
+    Say "目标：$($invocation.Label)" "Target: $($invocation.Label)"
+    Say '正在通过 DSH 官方插件命令安装…' 'Installing through the official DSH plugin command...'
+    $exitCode = Invoke-PluginAddWithReleaseAgeRecovery $invocation $packageSpec
+    if ($exitCode -ne 0) {
+        throw "DSH plugin command failed with exit code $exitCode."
+    }
+    Say '安装完成。请保存工作并正常重启 DSH。' 'Installed. Save your work and restart DSH normally.'
 }
-Say '安装完成。请保存工作并正常重启 DSH。' 'Installed. Save your work and restart DSH normally.'
+finally {
+    [Console]::OutputEncoding = $previousConsoleOutputEncoding
+    $OutputEncoding = $previousPipelineOutputEncoding
+}

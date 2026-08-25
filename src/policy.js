@@ -1,5 +1,5 @@
 export const MODES = Object.freeze(['official', 'native', 'energy'])
-export const ENERGY_STYLES = Object.freeze(['reference', 'compact'])
+export const ENERGY_STYLES = Object.freeze(['continuous', 'reference', 'compact'])
 export const DEFAULT_COLORS = Object.freeze({ light: '#8a49ca', dark: '#a857f7' })
 const MAX_MODEL_COLORS = 64
 const MAX_MODEL_KEY_PART = 256
@@ -61,7 +61,7 @@ export function normalizeMode(value) {
 }
 
 export function normalizeEnergyStyle(value) {
-  return ENERGY_STYLES.includes(value) ? value : 'reference'
+  return ENERGY_STYLES.includes(value) ? value : 'continuous'
 }
 
 export function advertisedEfforts(reasoning) {

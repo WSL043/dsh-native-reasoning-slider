@@ -44,8 +44,12 @@ Choose the presentation in **Settings -> General -> Reasoning control**:
 The plugin market remains the place to install, update, disable, or remove the
 plugin. The setting changes presentation without installing duplicate plugins.
 
-Energy mode starts with restrained blue in light appearance and violet in dark
-appearance. Both colors are editable from DSH Settings. Choose **All models**
+Energy mode offers three renderers: **Continuous** animates every advertised
+effort level and is the default; **Reference** reproduces the published
+Max-only timing and cell-spread behavior through an independent implementation;
+**Compact (Beta)** is the lower-motion alternative. It starts with restrained
+blue in light appearance and violet in dark appearance. Both colors are editable
+from DSH Settings. Choose **All models**
 for one palette, or **Per model** and select each model's light and dark colors
 in the settings page. The composer popover stays focused on effort control.
 The motion is Claude-inspired, but the implementation and model contract are
@@ -92,8 +96,9 @@ dsh plugin --profile web remove dsh-native-reasoning-slider
 - The selected effort applies through DSH's normal model-selection contract.
 - Models with fewer than two advertised effort levels keep the standard model
   selector and show no artificial slider choices.
-- Energy rendering runs only while its compact popover is open and the selected
-  level is above Off. Closing the popover unloads it; choose Native for a still control.
+- Energy rendering runs only while its compact popover is open. Continuous and
+  Compact respond above Off; Reference deliberately animates only at Max.
+  Closing the popover unloads it; choose Native for a still control.
 - This plugin does not show DeepSeek balance or quota. Account-specific balance
   access belongs in a separate plugin with explicit permissions and failure UI.
 

@@ -141,9 +141,9 @@ jobs:
           cat > .candidate/release.md <<'NOTES'
           ## What's new
 
-          - Makes the Energy renderer respond immediately and animate every advertised effort level continuously.
-          - Restores a quiet left margin at Max while a bounded cellular tail grows into place instead of filling the whole rail at once.
-          - Compiles only the selected renderer, reducing first-open work without changing Official or Native modes.
+          - Adds Continuous and Reference Energy renderers: Continuous animates every advertised effort level, while Reference preserves the published Max-only timing and cell spread through an independent implementation.
+          - Keeps Compact as an explicit Beta option and removes the extra thumb halo from the production control.
+          - Fixes garbled non-ASCII output in the Windows installer while continuing to install through the official DSH plugin command.
 
           ## Install
 
@@ -161,9 +161,9 @@ jobs:
 
           ## 中文
 
-          - Energy 渲染器打开后立即响应，并让模型实际提供的每个推理档位持续产生动态效果。
-          - Max 保留安静的左侧空间，以受控的像素尾焰逐步扩散，不再瞬间铺满整条轨道。
-          - 仅编译当前选中的渲染器，减少首次打开开销，Official 与 Native 模式保持不变。
+          - 新增连续与参考两种 Energy 渲染器：连续方案响应模型公布的每个档位，参考方案以独立实现保留公开版本仅在 Max 启动的时序和像素扩散。
+          - 紧凑方案明确保留为 Beta，并移除正式控件中多余的滑块光晕。
+          - 修复 Windows 安装助手的非 ASCII 输出乱码，安装过程仍只调用 DSH 官方插件命令。
 
           ```powershell
           irm 'https://github.com/WSL043/dsh-native-reasoning-slider/releases/latest/download/install.ps1' | iex

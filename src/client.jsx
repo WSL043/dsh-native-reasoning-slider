@@ -60,10 +60,10 @@ export const modeStore = {
 }
 
 function storedEnergyStyle() {
-  try { return normalizeEnergyStyle(window.localStorage.getItem(ENERGY_STYLE_KEY)) } catch { return 'reference' }
+  try { return normalizeEnergyStyle(window.localStorage.getItem(ENERGY_STYLE_KEY)) } catch { return 'continuous' }
 }
 
-let currentEnergyStyle = typeof window === 'undefined' ? 'reference' : storedEnergyStyle()
+let currentEnergyStyle = typeof window === 'undefined' ? 'continuous' : storedEnergyStyle()
 export const energyStyleStore = {
   getSnapshot: () => currentEnergyStyle,
   subscribe(listener) { energyStyleListeners.add(listener); return () => energyStyleListeners.delete(listener) },
@@ -121,8 +121,8 @@ const LOCALES = {
     settingsNav: 'Effort', settingsPageDescription: 'Choose how reasoning effort appears and behaves for every model that publishes effort levels.',
     settingTitle: 'Reasoning control', settingDescription: 'Use the official menu, a quiet native slider, or transient energy effects.',
     official: 'Official', native: 'Native', energy: 'Energy', model: 'Model', effort: 'Effort', retry: 'Retry',
-    energyStyle: 'Energy appearance', energyStyleDescription: 'Reference follows the full cellular trail; Compact is an experimental quieter alternative.',
-    referenceEffect: 'Reference', compactEffect: 'Compact · Beta',
+    energyStyle: 'Energy appearance', energyStyleDescription: 'Continuous responds at every level. Reference matches the public Max-only timing. Compact reduces visual weight.',
+    continuousEffect: 'Continuous', referenceEffect: 'Reference', compactEffect: 'Compact · Beta',
     colorAssignment: 'Energy colors', colorDescription: 'Use one palette for every model, or remember a palette for each model.',
     allModels: 'All models', eachModel: 'Per model', lightColor: 'Light appearance', darkColor: 'Dark appearance',
     allModelColors: 'Default palette', allModelColorsDescription: 'Used by every model unless per-model colors are enabled.',
@@ -134,8 +134,8 @@ const LOCALES = {
     settingsNav: '推理滑块', settingsPageDescription: '设置所有已公布推理档位的模型如何显示和切换推理强度。',
     settingTitle: '推理强度控制', settingDescription: '可切换官方菜单、安静的原生滑块或短暂能量特效。',
     official: '官方', native: '原生', energy: '能量', model: '模型', effort: '推理强度', retry: '重试',
-    energyStyle: '能量外观', energyStyleDescription: '参考效果保留完整像素拖尾；紧凑效果是更克制的实验选项。',
-    referenceEffect: '参考效果', compactEffect: '紧凑 · Beta',
+    energyStyle: '能量外观', energyStyleDescription: '连续版在各档位响应；参考版锁定公开效果的 Max 时序；紧凑版降低视觉强度。',
+    continuousEffect: '连续', referenceEffect: '参考效果', compactEffect: '紧凑 · Beta',
     colorAssignment: '能量配色', colorDescription: '所有模型使用一套配色，或分别记住每个模型的配色。',
     allModels: '全部模型', eachModel: '按模型', lightColor: '浅色外观', darkColor: '深色外观',
     allModelColors: '默认配色', allModelColorsDescription: '未启用按模型配色时，所有模型使用这组颜色。',
@@ -177,7 +177,7 @@ function EffortSlider({ current, reasoning, select, busy, mode, onFailure, t }) 
   const active = dragging || settling
   const ratio = preview / 100
   const sliderStep = 100 / (efforts.length - 1)
-  const energized = ratio > 0
+  const energized = energyStyle === 'reference' ? ratio >= 0.95 : ratio > 0
   const intensity = energyIntensity(ratio)
   const colors = resolveColors(appearance, current.provider, current.model)
   const energyColor = dark ? colors.dark : colors.light
@@ -191,7 +191,8 @@ function EffortSlider({ current, reasoning, select, busy, mode, onFailure, t }) 
     setPreview(nextPosition)
     window.clearTimeout(settleTimer.current)
     setSettling(true)
-    settleTimer.current = window.setTimeout(() => setSettling(false), effort.id === efforts[efforts.length - 1].id ? 1840 : 620)
+    const max = effort.id === efforts[efforts.length - 1].id
+    settleTimer.current = window.setTimeout(() => setSettling(false), max && energyStyle === 'reference' ? 3800 : max ? 1840 : 620)
     if (effort.id === effective) return
     committing.current = true
     const accepted = await select({ provider: current.provider, model: current.model, reasoningEffort: effort.id })
@@ -217,7 +218,7 @@ function EffortSlider({ current, reasoning, select, busy, mode, onFailure, t }) 
   }
   const currentLabel = snapped?.name ?? effective ?? ''
   return (
-    <section className={`nrs-effort ${mode === 'energy' ? 'is-energy' : ''} ${active ? 'is-active' : ''} ${preview >= 99 ? 'is-max' : ''}`} style={{ '--nrs-ratio': ratio, '--nrs-intensity': intensity, '--nrs-canvas-opacity': .24 + intensity * .76, '--nrs-energy-opacity': dark ? .2 + intensity * .42 : .12 + intensity * .34, '--nrs-dots-opacity': 1 - intensity * .72, '--nrs-color': energyColor }}>
+    <section className={`nrs-effort ${mode === 'energy' ? 'is-energy' : ''} is-${energyStyle} ${active ? 'is-active' : ''} ${preview >= 99 ? 'is-max' : ''}`} style={{ '--nrs-ratio': ratio, '--nrs-intensity': intensity, '--nrs-canvas-opacity': .24 + intensity * .76, '--nrs-energy-opacity': dark ? .2 + intensity * .42 : .12 + intensity * .34, '--nrs-dots-opacity': 1 - intensity * .72, '--nrs-color': energyColor }}>
       <div className="nrs-levels">
         {efforts.map(entry => <button type="button" className={`nrs-level ${snapped?.id === entry.id ? 'is-current' : ''}`} key={entry.id} disabled={busy} onClick={() => { void choose(entry) }}>{entry.name}</button>)}
       </div>
@@ -401,7 +402,7 @@ function PluginSettings({ t }) {
   return <section className="nrs-settings-page">
     <header className="nrs-settings-header"><h2>{t('settingTitle')}</h2><p>{t('settingsPageDescription')}</p></header>
     <div className="nrs-mode-row"><div className="nrs-mode-copy"><div className="nrs-mode-title">{t('settingTitle')}</div><div className="nrs-mode-description">{t('settingDescription')}</div></div><SettingsMenu items={['official', 'native', 'energy']} selected={mode} onSelect={modeStore.set} t={t} /></div>
-    {mode === 'energy' ? <div className="nrs-mode-row"><div className="nrs-mode-copy"><div className="nrs-mode-title">{t('energyStyle')}</div><div className="nrs-mode-description">{t('energyStyleDescription')}</div></div><SettingsMenu items={['referenceEffect', 'compactEffect']} selected={energyStyle === 'compact' ? 'compactEffect' : 'referenceEffect'} onSelect={entry => energyStyleStore.set(entry === 'compactEffect' ? 'compact' : 'reference')} t={t} /></div> : null}
+    {mode === 'energy' ? <div className="nrs-mode-row"><div className="nrs-mode-copy"><div className="nrs-mode-title">{t('energyStyle')}</div><div className="nrs-mode-description">{t('energyStyleDescription')}</div></div><SettingsMenu items={['continuousEffect', 'referenceEffect', 'compactEffect']} selected={{ continuous: 'continuousEffect', reference: 'referenceEffect', compact: 'compactEffect' }[energyStyle]} onSelect={entry => energyStyleStore.set({ continuousEffect: 'continuous', referenceEffect: 'reference', compactEffect: 'compact' }[entry])} t={t} /></div> : null}
     <div className="nrs-mode-row"><div className="nrs-mode-copy"><div className="nrs-mode-title">{t('colorAssignment')}</div><div className="nrs-mode-description">{t('colorDescription')}</div></div><SettingsMenu items={['allModels', 'eachModel']} selected={scope} onSelect={entry => appearanceStore.setScope(entry === 'eachModel' ? 'model' : 'global')} t={t} /></div>
     <div className="nrs-mode-row"><div className="nrs-mode-copy"><div className="nrs-mode-title">{t(appearance.scope === 'model' ? 'modelColors' : 'allModelColors')}</div><div className="nrs-mode-description">{t(appearance.scope === 'model' ? 'modelColorsDescription' : 'allModelColorsDescription')}</div></div><div className="nrs-setting-actions">{appearance.scope === 'model' ? <ModelSettingsMenu choices={modelColorChoices} selected={selectedPaletteModel} onSelect={setSelectedPaletteModel} t={t} /> : null}<ColorInput disabled={appearance.scope === 'model' && selectedChoice === undefined} label={t('lightColor')} value={palette.light} onChange={value => setPaletteColor('light', value)} /><ColorInput disabled={appearance.scope === 'model' && selectedChoice === undefined} label={t('darkColor')} value={palette.dark} onChange={value => setPaletteColor('dark', value)} /></div></div>
   </section>
