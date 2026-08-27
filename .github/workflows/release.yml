@@ -72,15 +72,15 @@ jobs:
         shell: bash
         run: |
           mkdir -p .candidate
-          cp .artifacts/dsh-native-reasoning-slider-${{ needs.preflight.outputs.version }}.tgz .candidate/dsh-native-reasoning-slider.tgz
+          cp .artifacts/dsh-reasoning-slider-${{ needs.preflight.outputs.version }}.tgz .candidate/dsh-reasoning-slider.tgz
           cp install.ps1 .candidate/install.ps1
-          test -s .candidate/dsh-native-reasoning-slider.tgz
+          test -s .candidate/dsh-reasoning-slider.tgz
           test -s .candidate/install.ps1
       - uses: actions/upload-artifact@v7
         with:
           name: release-candidate-${{ github.sha }}
           path: |
-            .candidate/dsh-native-reasoning-slider.tgz
+            .candidate/dsh-reasoning-slider.tgz
             .candidate/install.ps1
           if-no-files-found: error
 
@@ -121,7 +121,7 @@ jobs:
           path: .candidate
       - name: Official DSH end-to-end acceptance
         shell: powershell
-        run: .\.github\scripts\accept-official-release.ps1 -PackagePath .candidate\dsh-native-reasoning-slider.tgz -DshVersion '${{ needs.preflight.outputs.dsh_version }}'
+        run: .\.github\scripts\accept-official-release.ps1 -PackagePath .candidate\dsh-reasoning-slider.tgz -DshVersion '${{ needs.preflight.outputs.dsh_version }}'
 
   release:
     needs: [preflight, verify, windows, official-acceptance]
@@ -141,38 +141,38 @@ jobs:
           cat > .candidate/release.md <<'NOTES'
           ## What's new
 
-          - Adds Continuous and Reference Energy renderers: Continuous animates every advertised effort level, while Reference preserves the published Max-only timing and cell spread through an independent implementation.
-          - Keeps Compact as an explicit Beta option and removes the extra thumb halo from the production control.
-          - Fixes garbled non-ASCII output in the Windows installer while continuing to install through the official DSH plugin command.
+          - Renames the package to `dsh-reasoning-slider`; existing mode and color preferences migrate automatically.
+          - Refines the cellular Energy control with separate effect and track colors for light and dark themes.
+          - Supports shared palettes or model-specific palettes while keeping the compact model-aware effort contract.
 
           ## Install
 
           ```powershell
-          irm 'https://github.com/WSL043/dsh-native-reasoning-slider/releases/latest/download/install.ps1' | iex
+          irm 'https://github.com/WSL043/dsh-reasoning-slider/releases/latest/download/install.ps1' | iex
           ```
 
           Or use the official command:
 
           ```sh
-          dsh plugin --profile web add dsh-native-reasoning-slider
+          dsh plugin --profile web add dsh-reasoning-slider
           ```
 
           Restart DSH after installation.
 
           ## 中文
 
-          - 新增连续与参考两种 Energy 渲染器：连续方案响应模型公布的每个档位，参考方案以独立实现保留公开版本仅在 Max 启动的时序和像素扩散。
-          - 紧凑方案明确保留为 Beta，并移除正式控件中多余的滑块光晕。
-          - 修复 Windows 安装助手的非 ASCII 输出乱码，安装过程仍只调用 DSH 官方插件命令。
+          - 软件包更名为 `dsh-reasoning-slider`，已有模式与配色偏好会自动迁移。
+          - 能量滑块为浅色和深色界面分别提供效果色与轨道底色。
+          - 支持全部模型共用配色或按模型保存，同时保持简洁且识别模型能力的强度控制。
 
           ```powershell
-          irm 'https://github.com/WSL043/dsh-native-reasoning-slider/releases/latest/download/install.ps1' | iex
+          irm 'https://github.com/WSL043/dsh-reasoning-slider/releases/latest/download/install.ps1' | iex
           ```
 
           或直接使用官方命令：
 
           ```sh
-          dsh plugin --profile web add dsh-native-reasoning-slider
+          dsh plugin --profile web add dsh-reasoning-slider
           ```
 
           安装后请重启 DSH。
@@ -183,8 +183,8 @@ jobs:
           RELEASE_TAG: ${{ needs.preflight.outputs.tag }}
         shell: bash
         run: |
-          gh release create "$RELEASE_TAG" .candidate/dsh-native-reasoning-slider.tgz .candidate/install.ps1 \
-            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "$RELEASE_TAG" \
+          gh release create "$RELEASE_TAG" .candidate/dsh-reasoning-slider.tgz .candidate/install.ps1 \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "DSH Reasoning Slider $RELEASE_TAG" \
             --notes-file .candidate/release.md --latest
 
   publish-npm:
@@ -215,13 +215,13 @@ jobs:
         shell: bash
         run: |
           mkdir -p .release-artifact
-          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern dsh-native-reasoning-slider.tgz --dir .release-artifact
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern dsh-reasoning-slider.tgz --dir .release-artifact
       - name: Publish with npm Trusted Publishing
         shell: bash
         run: |
           version="$(node -p "require('./package.json').version")"
-          if npm view "dsh-native-reasoning-slider@$version" version >/dev/null 2>&1; then
-            echo "dsh-native-reasoning-slider@$version is already published."
+          if npm view "dsh-reasoning-slider@$version" version >/dev/null 2>&1; then
+            echo "dsh-reasoning-slider@$version is already published."
           else
-            npm publish .release-artifact/dsh-native-reasoning-slider.tgz --access public
+            npm publish .release-artifact/dsh-reasoning-slider.tgz --access public
           fi

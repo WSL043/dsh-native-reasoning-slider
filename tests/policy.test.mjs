@@ -4,9 +4,9 @@ import test from 'node:test'
 import {
   DEFAULT_COLORS,
   MODES,
+  PALETTE_PRESETS,
   advertisedEfforts,
   energyIntensity,
-  normalizeEnergyStyle,
   modelColorKey,
   normalizeAppearance,
   normalizeMode,
@@ -14,7 +14,7 @@ import {
   snapEffort,
 } from '../src/policy.js'
 
-test('energy intensity gives every four-level effort a deliberate visual weight', () => {
+test('energy intensity keeps deterministic weights for renderer input', () => {
   assert.equal(energyIntensity(0), 0)
   assert.equal(energyIntensity(1 / 3), 0.24)
   assert.equal(energyIntensity(2 / 3), 0.58)
@@ -31,12 +31,11 @@ test('mode preference supports official, native, and energy without inventing a 
   assert.equal(normalizeMode(null), 'energy')
 })
 
-test('energy presentation keeps continuous as the stable default, reference as compatibility, and compact as beta', () => {
-  assert.equal(normalizeEnergyStyle('continuous'), 'continuous')
-  assert.equal(normalizeEnergyStyle('reference'), 'reference')
-  assert.equal(normalizeEnergyStyle('compact'), 'compact')
-  assert.equal(normalizeEnergyStyle('unknown'), 'continuous')
-  assert.equal(normalizeEnergyStyle(null), 'continuous')
+test('energy presentation exposes paired light and dark palettes instead of renderer variants', () => {
+  assert.equal(PALETTE_PRESETS.light.length, 4)
+  assert.equal(PALETTE_PRESETS.dark.length, 4)
+  assert.deepEqual({ main: PALETTE_PRESETS.light[0].main, base: PALETTE_PRESETS.light[0].base }, DEFAULT_COLORS.light)
+  assert.deepEqual({ main: PALETTE_PRESETS.dark[0].main, base: PALETTE_PRESETS.dark[0].base }, DEFAULT_COLORS.dark)
 })
 
 test('the slider uses only exact effort levels advertised by the selected model', () => {
@@ -73,7 +72,10 @@ test('continuous pointer positions snap to the nearest advertised effort on comm
 test('appearance preferences support one palette or model-specific palettes', () => {
   const global = normalizeAppearance({
     scope: 'global',
-    global: { light: '#275fc7', dark: '#8c72ff' },
+    global: {
+      light: { main: '#275fc7', base: '#e4eaf7' },
+      dark: { main: '#8c72ff', base: '#15131d' },
+    },
     models: {},
   })
   assert.deepEqual(resolveColors(global, 'openai', 'gpt-5'), global.global)
@@ -82,38 +84,59 @@ test('appearance preferences support one palette or model-specific palettes', ()
   const perModel = normalizeAppearance({
     scope: 'model',
     global: global.global,
-    models: { [key]: { light: '#087f73', dark: '#54d8c5' } },
+    models: { [key]: {
+      light: { main: '#087f73', base: '#d8eeeb' },
+      dark: { main: '#54d8c5', base: '#101b1a' },
+    } },
   })
   assert.deepEqual(resolveColors(perModel, 'deepseek', 'DeepSeek-V4-Flash'), perModel.models[key])
   assert.deepEqual(resolveColors(perModel, 'openai', 'gpt-5'), perModel.global)
 })
 
 test('appearance normalization keeps distinct polished theme defaults and rejects unsafe values', () => {
-  assert.deepEqual(DEFAULT_COLORS, { light: '#8a49ca', dark: '#a857f7' })
-  assert.notEqual(DEFAULT_COLORS.light, DEFAULT_COLORS.dark)
+  assert.deepEqual(DEFAULT_COLORS, {
+    light: { main: '#7c43c7', base: '#f0eff2' },
+    dark: { main: '#a857f7', base: '#111015' },
+  })
+  assert.notEqual(DEFAULT_COLORS.light.main, DEFAULT_COLORS.dark.main)
   const normalized = normalizeAppearance({
     scope: 'invalid',
-    global: { light: 'red', dark: '#ABCDEF' },
+    global: { light: { main: 'red', base: '#E8E1F2' }, dark: { main: '#ABCDEF', base: 'black' } },
     models: {
-      [modelColorKey('provider', 'valid')]: { light: '#123456', dark: '#654321' },
-      [modelColorKey('provider', 'invalid')]: { light: 'transparent', dark: '#00000000' },
+      [modelColorKey('provider', 'valid')]: { light: { main: '#123456', base: '#eeeeee' }, dark: { main: '#654321', base: '#111111' } },
+      [modelColorKey('provider', 'invalid')]: { light: { main: 'transparent', base: '#eeeeee' }, dark: { main: '#00000000', base: '#111111' } },
     },
   })
   assert.equal(normalized.scope, 'global')
-  assert.equal(normalized.global.light, DEFAULT_COLORS.light)
-  assert.equal(normalized.global.dark, '#abcdef')
+  assert.equal(normalized.global.light.main, DEFAULT_COLORS.light.main)
+  assert.equal(normalized.global.light.base, '#e8e1f2')
+  assert.equal(normalized.global.dark.main, '#abcdef')
+  assert.equal(normalized.global.dark.base, DEFAULT_COLORS.dark.base)
   assert.equal(Object.keys(normalized.models).length, 1)
+})
+
+test('appearance normalization migrates version 1 main colors without losing user choices', () => {
+  const normalized = normalizeAppearance({
+    version: 1,
+    scope: 'global',
+    global: { light: '#275fc7', dark: '#8c72ff' },
+  })
+  assert.equal(normalized.version, 2)
+  assert.deepEqual(normalized.global, {
+    light: { main: '#275fc7', base: DEFAULT_COLORS.light.base },
+    dark: { main: '#8c72ff', base: DEFAULT_COLORS.dark.base },
+  })
 })
 
 test('model color keys are collision-safe and bounded', () => {
   assert.notEqual(modelColorKey('a/b', 'c'), modelColorKey('a', 'b/c'))
   const models = Object.fromEntries(Array.from({ length: 80 }, (_, index) => [
     modelColorKey('provider', `model-${index}`),
-    { light: '#123456', dark: '#654321' },
+    { light: { main: '#123456', base: '#eeeeee' }, dark: { main: '#654321', base: '#111111' } },
   ]))
   assert.equal(Object.keys(normalizeAppearance({ scope: 'model', models }).models).length, 64)
   assert.deepEqual(normalizeAppearance({ scope: 'model', models: Object.fromEntries([
-    ['__proto__', { light: '#123456', dark: '#654321' }],
-    ['not-json', { light: '#123456', dark: '#654321' }],
+    ['__proto__', { light: { main: '#123456', base: '#eeeeee' }, dark: { main: '#654321', base: '#111111' } }],
+    ['not-json', { light: { main: '#123456', base: '#eeeeee' }, dark: { main: '#654321', base: '#111111' } }],
   ]) }).models, {})
 })

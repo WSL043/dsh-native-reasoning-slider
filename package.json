@@ -1,7 +1,7 @@
 {
-  "name": "dsh-native-reasoning-slider",
-  "version": "0.1.8",
-  "description": "A native, model-aware effort slider with polished light, dark, and per-model colors for DeepSeek Harness",
+  "name": "dsh-reasoning-slider",
+  "version": "0.2.0",
+  "description": "A model-aware reasoning slider with polished light, dark, and per-model colors for DeepSeek Harness",
   "keywords": [
     "dsh-plugin",
     "deepseek-harness",
@@ -52,12 +52,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/WSL043/dsh-native-reasoning-slider.git"
+    "url": "git+https://github.com/WSL043/dsh-reasoning-slider.git"
   },
   "bugs": {
-    "url": "https://github.com/WSL043/dsh-native-reasoning-slider/issues"
+    "url": "https://github.com/WSL043/dsh-reasoning-slider/issues"
   },
-  "homepage": "https://github.com/WSL043/dsh-native-reasoning-slider#readme",
+  "homepage": "https://github.com/WSL043/dsh-reasoning-slider#readme",
   "publishConfig": {
     "access": "public"
   },

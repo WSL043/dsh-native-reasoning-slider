@@ -24,7 +24,7 @@
 
 - Fonts and typography: inherited DSH UI family and optical weights; 10 px effort labels and native 14/12 px settings hierarchy match adjacent official rows.
 - Spacing and layout rhythm: 8 px popover content padding, 4 px label gap, 34 px track, 26 px thumb, and 18 px setting-row vertical padding. The two plugin setting rows align with official rows above and below.
-- Colors and tokens: light default `#416fca`, dark default `#9b82ff`, both editable. Custom energy color flows through one `--nrs-color` variable instead of a rainbow or generic AI gradient.
+- Colors and tokens: light default `#7c43c7` on `#f0eff2`, dark default `#a857f7` on `#111015`. Light derives a low-value cool tail and a saturated adjacent-hue core instead of reusing the dark white-hot core. Each theme offers four paired presets plus separate effect/track fine tuning.
 - Image and asset fidelity: there are no decorative raster assets, copied artwork, or external shaders. The WebGL cells, trail, bloom, density curve, and endpoint pulse are independently implemented.
 - Copy and content: effort names come only from the selected model. English and Chinese settings describe the actual global/per-model behavior.
 

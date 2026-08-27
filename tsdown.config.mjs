@@ -1,6 +1,6 @@
 import { defineConfig } from 'tsdown'
 
-const id = 'dsh-native-reasoning-slider'
+const id = 'dsh-reasoning-slider'
 const clientExternal = [
   'react',
   'react/jsx-runtime',

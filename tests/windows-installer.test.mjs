@@ -15,7 +15,7 @@ test('the irm helper uses an existing official DSH command and never cold-instal
     readFile(new URL('../package.json', import.meta.url), 'utf8').then(JSON.parse),
     readFile(new URL('../compatibility.json', import.meta.url), 'utf8').then(JSON.parse),
   ])
-  assert.match(installer, new RegExp(`dsh-native-reasoning-slider@${manifest.version.replaceAll('.', '\\.')}\\b`))
+  assert.match(installer, new RegExp(`dsh-reasoning-slider@${manifest.version.replaceAll('.', '\\.')}\\b`))
   assert.match(installer, /plugin['"],\s*['"]--profile['"],\s*['"]web['"],\s*['"]add['"]/) 
   assert.match(installer, /@deepseek-ai[\\\\/]dsh/u)
   assert.doesNotMatch(installer, /DSH_PORTABLE_ROOT|\.\\dsh\.exe/u)
@@ -50,7 +50,7 @@ windowsTest('a running official DSH is reused instead of starting npx', async t 
     encoding: 'utf8',
   })
   assert.equal(result.status, 0, result.stderr || result.stdout)
-  assert.equal((await readFile(nodeLog, 'utf8')).trim(), `${bin} plugin --profile web add dsh-native-reasoning-slider@0.1.8`)
+  assert.equal((await readFile(nodeLog, 'utf8')).trim(), `${bin} plugin --profile web add dsh-reasoning-slider@0.2.0`)
   await assert.rejects(readFile(npxLog, 'utf8'), /ENOENT/u)
 })
 
@@ -87,13 +87,13 @@ windowsTest('a young package already locked in the profile gets one scoped relea
   })
   assert.equal(result.status, 0, result.stderr || result.stdout)
   assert.deepEqual((await readFile(nodeLog, 'utf8')).trim().split(/\r?\n/u), [
-    `${bin} plugin --profile web add dsh-native-reasoning-slider@0.1.8`,
-    `${bin} plugin --profile web add --config.minimumReleaseAge=0 dsh-native-reasoning-slider@0.1.8`,
+    `${bin} plugin --profile web add dsh-reasoning-slider@0.2.0`,
+    `${bin} plugin --profile web add --config.minimumReleaseAge=0 dsh-reasoning-slider@0.2.0`,
   ])
 })
 
 test('the release publishes the same installer used by the latest irm URL', async () => {
   const release = await readFile(releasePath, 'utf8')
   assert.match(release, /\.candidate\/install\.ps1/)
-  assert.match(release, /irm 'https:\/\/github\.com\/WSL043\/dsh-native-reasoning-slider\/releases\/latest\/download\/install\.ps1' \| iex/)
+  assert.match(release, /irm 'https:\/\/github\.com\/WSL043\/dsh-reasoning-slider\/releases\/latest\/download\/install\.ps1' \| iex/)
 })

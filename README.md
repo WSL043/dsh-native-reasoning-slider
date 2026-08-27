@@ -5,8 +5,9 @@
 **A compact, model-aware effort control for DeepSeek Harness**
 
 [![CI](https://github.com/WSL043/dsh-reasoning-slider/actions/workflows/ci.yml/badge.svg)](https://github.com/WSL043/dsh-reasoning-slider/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/dsh-native-reasoning-slider?logo=npm&label=npm)](https://www.npmjs.com/package/dsh-native-reasoning-slider)
-[![total npm downloads](https://img.shields.io/npm/dt/dsh-native-reasoning-slider?logo=npm&label=total%20downloads)](https://www.npmjs.com/package/dsh-native-reasoning-slider)
+[![npm](https://img.shields.io/npm/v/dsh-reasoning-slider?logo=npm&label=npm)](https://www.npmjs.com/package/dsh-reasoning-slider)
+[![total npm downloads](https://img.shields.io/npm/dt/dsh-reasoning-slider?logo=npm&label=total%20downloads)](https://www.npmjs.com/package/dsh-reasoning-slider)
+[![status](https://img.shields.io/badge/status-Beta-7c3aed.svg)](#beta-status)
 [![MIT](https://img.shields.io/badge/license-MIT-111111.svg)](LICENSE)
 
 [Live demo](https://wsl043.github.io/dsh-reasoning-slider/) · [Install](#install) · [Modes](#three-modes-one-plugin) · [简体中文](README.zh-CN.md)
@@ -31,9 +32,16 @@ capabilities or change provider routing.
 - **Deliberate:** keyboard input works; Native stays still, while choosing Energy explicitly enables motion.
 - **Private:** no credentials, account access, telemetry, or plugin-owned network calls.
 
+## Beta status
+
+The model contract and safe DSH integration are tested, while the visual
+renderers and palette controls remain in active iteration. Beta updates keep
+existing preferences compatible and are published for hands-on feedback before
+the visual API is declared stable.
+
 ## Three modes, one plugin
 
-Choose the presentation in **Settings -> General -> Reasoning control**:
+Choose the presentation in **Settings -> Effort · Beta**:
 
 | Mode | Behavior |
 | --- | --- |
@@ -44,15 +52,16 @@ Choose the presentation in **Settings -> General -> Reasoning control**:
 The plugin market remains the place to install, update, disable, or remove the
 plugin. The setting changes presentation without installing duplicate plugins.
 
-Energy mode offers three renderers: **Continuous** animates every advertised
-effort level and is the default; **Reference** reproduces the published
-Max-only timing and cell-spread behavior through an independent implementation;
-**Compact (Beta)** is the lower-motion alternative. It starts with restrained
-blue in light appearance and violet in dark appearance. Both colors are editable
-from DSH Settings. Choose **All models**
-for one palette, or **Per model** and select each model's light and dark colors
-in the settings page. The composer popover stays focused on effort control.
-The motion is Claude-inspired, but the implementation and model contract are
+Energy mode uses one production cellular renderer during effort changes. Off
+and intermediate levels become visually still after settling, while the
+model's maximum effort keeps the field burning. It
+preserves the pixel field and ignition character while using constant
+CSS-pixel propagation, so a longer rail does not make the animation appear to
+slow down. Light and dark appearances each offer paired presets plus editable
+**effect** and **track** colors. Choose **All models** to share both palettes,
+or **Per model** to remember them for each discovered model. Existing two-color
+preferences keep their effect colors and receive the recommended track defaults.
+The motion is Claude-inspired, but the implementation and model contract remain
 provider-neutral.
 
 <p align="center">
@@ -77,7 +86,7 @@ irm 'https://github.com/WSL043/dsh-reasoning-slider/releases/latest/download/ins
 Or use the official DSH command directly:
 
 ```sh
-dsh plugin --profile web add dsh-native-reasoning-slider
+dsh plugin --profile web add dsh-reasoning-slider
 ```
 
 Then restart DSH. The same official command works with DSH distributions that
@@ -87,8 +96,8 @@ the package metadata.
 Update or uninstall:
 
 ```sh
-dsh plugin --profile web update dsh-native-reasoning-slider
-dsh plugin --profile web remove dsh-native-reasoning-slider
+dsh plugin --profile web update dsh-reasoning-slider
+dsh plugin --profile web remove dsh-reasoning-slider
 ```
 
 ## Behavior and limits
@@ -96,8 +105,9 @@ dsh plugin --profile web remove dsh-native-reasoning-slider
 - The selected effort applies through DSH's normal model-selection contract.
 - Models with fewer than two advertised effort levels keep the standard model
   selector and show no artificial slider choices.
-- Energy rendering runs only while its compact popover is open. Continuous and
-  Compact respond above Off; Reference deliberately animates only at Max.
+- Energy rendering runs only while its compact popover is open. It appears
+  briefly while the effort changes, becomes still after settling on Off or an
+  intermediate level, and remains active at the maximum advertised effort.
   Closing the popover unloads it; choose Native for a still control.
 - This plugin does not show DeepSeek balance or quota. Account-specific balance
   access belongs in a separate plugin with explicit permissions and failure UI.

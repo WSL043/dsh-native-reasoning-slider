@@ -5,10 +5,10 @@ in vec2 a_position;
 out vec2 v_uv;
 void main(){v_uv=a_position*0.5+0.5;gl_Position=vec4(a_position,0.0,1.0);}`
 
-// Independent implementation of the observable reference behavior.  The
-// reference and compact paths intentionally use different programs so the
-// quieter beta style cannot perturb the reference feedback state.
-const REFERENCE_SIMULATION = `#version 300 es
+// One production renderer, derived from the accepted cellular feedback model.
+// Motion is measured in CSS pixels so changing the rail width does not change
+// the apparent propagation speed.
+const ENERGY_SIMULATION = `#version 300 es
 precision highp float;
 in vec2 v_uv;
 uniform sampler2D u_previous;
@@ -16,11 +16,23 @@ uniform float u_time;
 uniform float u_ratio;
 uniform float u_intensity;
 uniform float u_elapsed;
-uniform float u_reference;
+uniform float u_css_width;
+uniform float u_light;
 uniform vec3 u_color;
 out vec4 outputColor;
 
 float noiseAt(vec2 index){return fract(sin(dot(index,vec2(127.1,311.7)))*43758.5453);}
+vec3 rgbToHsv(vec3 color){
+  vec4 K=vec4(0.0,-1.0/3.0,2.0/3.0,-1.0);
+  vec4 p=mix(vec4(color.bg,K.wz),vec4(color.gb,K.xy),step(color.b,color.g));
+  vec4 q=mix(vec4(p.xyw,color.r),vec4(color.r,p.yzx),step(p.x,color.r));
+  float d=q.x-min(q.w,q.y);
+  return vec3(abs(q.z+(q.w-q.y)/(6.0*d+0.00001)),d/(q.x+0.00001),q.x);
+}
+vec3 hsvToRgb(vec3 color){
+  vec3 p=abs(fract(color.xxx+vec3(0.0,2.0/3.0,1.0/3.0))*6.0-3.0);
+  return color.z*mix(vec3(1.0),clamp(p-1.0,0.0,1.0),color.y);
+}
 void main(){
   vec2 coordinate=v_uv;
   vec2 lattice=coordinate*vec2(72.0,6.0);
@@ -31,23 +43,40 @@ void main(){
   float cellMask=smoothstep(0.34,0.22,max(centered.x*0.9,centered.y));
 
   vec3 history=texture(u_previous,coordinate).rgb;
-  float leftFadeEnd=mix(0.12,0.45,u_reference);
-  float leftFade=smoothstep(0.0,leftFadeEnd,coordinate.x);
-  float retention=mix(0.84,0.90,u_reference);
-  vec3 retained=history*retention*leftFade;
-  float continuousEnabled=smoothstep(0.001,0.05,u_intensity);
-  float referenceEnabled=smoothstep(0.95,1.0,u_ratio);
-  float enabled=mix(continuousEnabled,referenceEnabled,u_reference);
-  if(enabled<0.01||u_elapsed<0.0){outputColor=vec4(retained,1.0);return;}
+  float leftFade=smoothstep(0.0,0.45,coordinate.x);
+  // Long feedback trails are part of the sustained Max burn. On intermediate
+  // levels they visually stack successive cells into a sheet, so retain only
+  // a very short afterimage while the injection passes.
+  float feedbackRetention=mix(0.18,0.90,smoothstep(0.90,1.0,u_ratio));
+  vec3 retained=history*feedbackRetention*leftFade;
+  float enabled=smoothstep(0.001,0.05,u_intensity);
+  if(u_elapsed<0.0){outputColor=vec4(0.0);return;}
+  if(enabled<0.01){outputColor=vec4(retained,1.0);return;}
 
-  float ignitionDelay=mix(0.35,1.2,u_reference);
-  float spreadDuration=mix(1.05,2.5,u_reference);
-  float progressAge=max(u_elapsed-randomValue*ignitionDelay,0.0);
+  float charged=step(0.001,u_ratio);
+  float settledLitSide=step(coordinate.x,u_ratio+0.003);
+  float settledFrame=floor(u_time*8.0);
+  float settledFrameNoise=noiseAt(cellIndex+vec2(settledFrame*13.0,settledFrame*29.0));
+  float settledDrift=sin(u_time*3.2+randomValue*6.283)*0.006;
+  float settledOffset=coordinate.x-(u_ratio-0.030+settledDrift);
+  float settledCore=exp(-pow(settledOffset*42.0,2.0));
+  float settledDistance=max(u_ratio-coordinate.x+settledDrift,0.0);
+  float settledTailLength=mix(0.10,0.19,u_intensity);
+  float settledAura=exp(-pow(settledDistance/max(settledTailLength,0.001),1.35))
+    *step(coordinate.x,u_ratio+settledDrift);
+  float settledStrength=mix(0.68,1.0,u_intensity);
+  float settledSparsity=step(mix(0.78,0.62,u_intensity),settledFrameNoise);
+  float settledPulse=0.84+sin(u_time*4.4+randomValue*6.283)*0.16;
+  float settledCells=(settledCore+settledAura*0.34*settledSparsity)
+    *(0.58+randomValue*0.42)*settledPulse*cellMask*leftFade*settledLitSide*charged*settledStrength;
+  vec3 settledCoreColor=mix(vec3(1.0,0.94,0.98),u_color,u_light);
+  vec3 settledColor=mix(u_color,settledCoreColor,settledCore*0.62);
+
+  float progressAge=max(u_elapsed-randomValue*1.2,0.0);
   float started=step(0.001,progressAge);
   float cellVelocity=0.85+randomValue*0.30;
-  float cubicProgress=1.0-pow(1.0-clamp(progressAge/spreadDuration,0.0,1.0),3.0);
-  float continuousReach=mix(0.62,0.70,u_intensity);
-  float traveled=cubicProgress*u_ratio*mix(continuousReach,1.0,u_reference)*cellVelocity*started;
+  float travelPixels=progressAge*210.0*cellVelocity;
+  float traveled=min(travelPixels/max(u_css_width,1.0),u_ratio+0.05)*started;
   float leadingEdge=max(u_ratio-traveled-(randomValue-0.5)*0.05,0.02);
   float trailSpan=max(u_ratio-leadingEdge,0.001);
   float withinTrail=step(leadingEdge-0.003,coordinate.x)*step(coordinate.x,u_ratio+0.003);
@@ -56,12 +85,10 @@ void main(){
   brightness=max(brightness,0.04*started)*withinTrail;
   brightness*=1.0-smoothstep(0.94,1.05,distanceBehind);
 
-  float continuousScale=mix(0.24,0.46,min(u_elapsed,0.75));
-  float referenceScale=mix(0.15,0.50,min(u_elapsed/1.0,1.0));
-  float energyScale=mix(continuousScale,referenceScale,u_reference);
+  float energyScale=mix(0.15,0.50,min(u_elapsed/1.0,1.0));
   float verticalDistance=abs(coordinate.y-0.5)*2.0;
   float verticalShape=pow(max(1.0-verticalDistance*verticalDistance*0.45,0.0),0.75);
-  float timeScale=mix(0.85,1.0,min(u_elapsed/1.5,1.0));
+  float timeScale=1.0;
   float oscillatorA=sin(coordinate.x*30.0+u_time*15.0*timeScale+randomValue*6.28);
   float oscillatorB=sin(coordinate.x*17.0+u_time*8.0*timeScale+randomValue*3.14);
   float oscillatorC=sin(coordinate.x*52.0+u_time*25.0*timeScale+randomValue*10.0);
@@ -86,59 +113,35 @@ void main(){
   float frontBand=exp(-pow((coordinate.x-leadingEdge)*18.0,2.0));
   float frontWaveA=sin(coordinate.x*45.0+u_time*20.0*timeScale+randomValue*6.28)*0.5+0.5;
   float frontWaveB=sin(coordinate.x*28.0+u_time*11.0*timeScale+randomValue*3.14)*0.5+0.5;
-  float activeFront=frontBand*(0.18+frontWaveA*frontWaveB*0.82)*0.72*enabled*energyScale;
+  float activeFront=frontBand*(0.25+frontWaveA*frontWaveB*1.5)*1.6*enabled*energyScale;
   float leadDistance=leadingEdge-coordinate.x;
   float leadArea=smoothstep(0.07,0.0,leadDistance)*step(0.0,leadDistance)*verticalShape;
   float secondaryNoise=noiseAt(cellIndex+vec2(99.0,33.0));
   float leadWave=sin(leadDistance*100.0+u_time*20.0*timeScale+secondaryNoise*6.28)*0.5+0.5;
   float leadingSpark=leadArea*step(0.6,secondaryNoise)*leadWave*enabled*energyScale*0.5;
-  float activity=(cellularEnergy+activeFront+leadingSpark)*mix(0.26,1.0,u_intensity);
+  float frameIndex=floor(u_time*12.0);
+  float frameNoise=noiseAt(cellIndex+vec2(frameIndex*17.0,frameIndex*31.0));
+  float intermediateCellGate=step(0.58,frameNoise);
+  float liveCellGate=mix(intermediateCellGate,1.0,smoothstep(0.90,1.0,u_ratio));
+  float activity=(cellularEnergy+activeFront+leadingSpark)*mix(0.26,1.0,u_intensity)*liveCellGate;
 
-  vec3 coolColor=u_color*0.35;
-  vec3 warmWhite=vec3(1.0,0.94,0.98);
+  vec3 sourceHsv=rgbToHsv(u_color);
+  vec3 lightTail=hsvToRgb(vec3(fract(sourceHsv.x+0.035),clamp(sourceHsv.y*0.92,0.0,1.0),clamp(sourceHsv.z*0.54,0.0,1.0)));
+  vec3 lightCore=hsvToRgb(vec3(fract(sourceHsv.x-0.025),clamp(sourceHsv.y*1.08,0.0,1.0),clamp(max(sourceHsv.z,0.62)*1.04,0.0,0.92)));
+  vec3 coolColor=mix(u_color*0.35,lightTail,u_light);
+  vec3 warmWhite=mix(vec3(1.0,0.94,0.98),lightCore,u_light);
   float heat=1.0-distanceBehind;
   vec3 energyColor=mix(coolColor,u_color,heat);
   energyColor=mix(energyColor,warmWhite,pow(heat,1.8))*activity;
-  float endpointCore=exp(-pow((coordinate.x-u_ratio)*16.0,2.0))*enabled*energyScale;
-  float referenceCore=u_reference > 0.5 ? endpointCore : 0.0;
-  energyColor=(energyColor+warmWhite*referenceCore*2.2)*cellMask*leftFade;
-  outputColor=vec4(min(retained+energyColor,vec3(1.5)),1.0);
-}`
-
-const CONTINUOUS_SIMULATION = REFERENCE_SIMULATION
-
-const COMPACT_SIMULATION = `#version 300 es
-precision highp float;
-in vec2 v_uv;
-uniform sampler2D u_previous;
-uniform float u_time;
-uniform float u_ratio;
-uniform float u_intensity;
-uniform float u_elapsed;
-uniform vec3 u_color;
-out vec4 outputColor;
-float noiseAt(vec2 index){return fract(sin(dot(index,vec2(127.1,311.7)))*43758.5453123);}
-void main(){
-  vec2 coordinate=v_uv;
-  vec2 lattice=coordinate*vec2(64.0,6.0);
-  vec2 cellIndex=floor(lattice);
-  vec2 local=fract(lattice)-0.5;
-  float randomValue=noiseAt(cellIndex);
-  float cellMask=1.0-smoothstep(0.22,0.39,max(abs(local.x)*0.9,abs(local.y)));
-  float endpoint=mix(0.045,0.955,clamp(u_ratio,0.0,1.0));
-  float enabled=smoothstep(0.015,0.09,u_intensity);
-  float progressAge=max(u_elapsed-randomValue*0.62,0.0);
-  float spread=1.0-pow(1.0-clamp(progressAge/1.25,0.0,1.0),3.0);
-  float trailSpan=max(endpoint*mix(0.34,0.72,u_intensity),0.025);
-  float front=max(endpoint-trailSpan*spread*(0.86+randomValue*0.28),0.018);
-  float zone=step(front-0.004,coordinate.x)*step(coordinate.x,endpoint+0.006);
-  float distanceBehind=clamp((endpoint-coordinate.x)/max(endpoint-front,0.002),0.0,1.0);
-  float wave=sin(coordinate.x*31.0+u_time*(8.0+u_intensity*8.0)+randomValue*6.283);
-  float rhythm=sin(distanceBehind*17.0-u_time*(3.2+u_intensity*2.8)+randomValue*3.1);
-  float fresh=cellMask*zone*enabled*pow(1.0-distanceBehind,0.92)*(0.38+0.32*wave+0.18*rhythm);
-  vec3 history=texture(u_previous,coordinate).rgb*0.74*(0.82+0.18*smoothstep(0.0,0.38,coordinate.x));
-  vec3 color=mix(u_color*0.30,u_color,1.0-distanceBehind)*max(fresh,0.0)*0.46;
-  outputColor=vec4(min(history+color,vec3(1.2)),1.0);
+  float litSide=step(coordinate.x,u_ratio+0.003);
+  float endpointCore=exp(-pow((coordinate.x-u_ratio)*16.0,2.0))*enabled*energyScale*litSide;
+  energyColor+=warmWhite*endpointCore*2.2;
+  energyColor+=u_color*exp(-pow((coordinate.x-u_ratio)*3.5,2.0))*0.12*enabled*energyScale*litSide;
+  energyColor*=cellMask*leftFade;
+  vec3 dynamicColor=min(retained+energyColor,vec3(1.5));
+  float sustainedBurn=smoothstep(0.90,0.995,u_ratio);
+  float settleProgress=smoothstep(0.35,1.35,u_elapsed)*(1.0-sustainedBurn);
+  outputColor=vec4(mix(dynamicColor,settledColor*settledCells,settleProgress),1.0);
 }`
 
 const BLUR = `#version 300 es
@@ -147,6 +150,7 @@ in vec2 v_uv;
 uniform sampler2D u_texture;
 uniform vec2 u_resolution;
 uniform vec2 u_direction;
+uniform float u_radius;
 uniform float u_rejectDim;
 out vec4 outputColor;
 vec3 sampleBloom(vec2 coordinate){
@@ -154,7 +158,7 @@ vec3 sampleBloom(vec2 coordinate){
   return u_rejectDim>0.5&&dot(color,vec3(0.2126,0.7152,0.0722))<0.3?vec3(0.0):color;
 }
 void main(){
-  vec2 stepSize=u_direction*1.8/u_resolution;
+  vec2 stepSize=u_direction*u_radius/u_resolution;
   vec3 color=sampleBloom(v_uv)*0.227027;
   color+=sampleBloom(v_uv+stepSize)*0.194595;
   color+=sampleBloom(v_uv-stepSize)*0.194595;
@@ -170,12 +174,17 @@ precision highp float;
 in vec2 v_uv;
 uniform sampler2D u_scene;
 uniform sampler2D u_bloom;
+uniform float u_light;
 out vec4 outputColor;
 void main(){
   vec3 scene=texture(u_scene,v_uv).rgb;
   vec3 bloom=texture(u_bloom,v_uv).rgb;
   vec3 mapped=1.0-exp(-(scene+bloom*1.2+scene*bloom*0.35)*1.15);
-  outputColor=vec4(mapped,1.0);
+  vec3 lightSource=scene*0.92+bloom*0.22;
+  vec3 lightMapped=pow(clamp(lightSource,0.0,1.0),vec3(0.92));
+  float lightPeak=max(max(lightMapped.r,lightMapped.g),lightMapped.b);
+  float lightAlpha=smoothstep(0.010,0.36,lightPeak)*0.82;
+  outputColor=u_light>0.5?vec4(lightMapped,lightAlpha):vec4(mapped,1.0);
 }`
 
 function hexRgb(value) {
@@ -183,19 +192,19 @@ function hexRgb(value) {
   return match ? [1, 2, 3].map(index => Number.parseInt(match[index], 16) / 255) : [0.61, 0.51, 1]
 }
 
-export function EnergyField({ active, color, intensity, light, ratio, styleVariant = 'continuous' }) {
+export function EnergyField({ active, baseColor, color, intensity, light, ratio }) {
   const canvasRef = useRef(null)
   const [generation, setGeneration] = useState(0)
-  const values = useRef({ active, color, intensity, light, ratio, styleVariant })
+  const values = useRef({ active, color, intensity, light, ratio })
   const wakeRef = useRef(() => {})
   useEffect(() => {
-    values.current = { active, color, intensity, light, ratio, styleVariant }
+    values.current = { active, color, intensity, light, ratio }
     wakeRef.current()
-  }, [active, color, intensity, light, ratio, styleVariant])
+  }, [active, color, intensity, light, ratio])
 
   useEffect(() => {
     const canvas = canvasRef.current
-    const gl = canvas?.getContext('webgl2', { preserveDrawingBuffer: false, antialias: false })
+    const gl = canvas?.getContext('webgl2', { preserveDrawingBuffer: false, antialias: false, alpha: true, premultipliedAlpha: false })
     if (canvas === null || gl === null || gl === undefined) return undefined
     const compile = (kind, source) => {
       const shader = gl.createShader(kind)
@@ -213,8 +222,7 @@ export function EnergyField({ active, color, intensity, light, ratio, styleVaria
       if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program) ?? 'Shader link failed')
       return program
     }
-    const simulationSource = styleVariant === 'compact' ? COMPACT_SIMULATION : styleVariant === 'reference' ? REFERENCE_SIMULATION : CONTINUOUS_SIMULATION
-    const simulation = createProgram(simulationSource)
+    const simulation = createProgram(ENERGY_SIMULATION)
     const blur = createProgram(BLUR)
     const composite = createProgram(COMPOSITE)
     const vao = gl.createVertexArray()
@@ -224,18 +232,19 @@ export function EnergyField({ active, color, intensity, light, ratio, styleVaria
     gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0)
     const uniform = (program, name) => gl.getUniformLocation(program, name)
     const simulationLocations = program => ({
-      previous: uniform(program, 'u_previous'), time: uniform(program, 'u_time'), ratio: uniform(program, 'u_ratio'), intensity: uniform(program, 'u_intensity'), elapsed: uniform(program, 'u_elapsed'), reference: uniform(program, 'u_reference'), color: uniform(program, 'u_color'),
+      previous: uniform(program, 'u_previous'), time: uniform(program, 'u_time'), ratio: uniform(program, 'u_ratio'), intensity: uniform(program, 'u_intensity'), elapsed: uniform(program, 'u_elapsed'), cssWidth: uniform(program, 'u_css_width'), light: uniform(program, 'u_light'), color: uniform(program, 'u_color'),
     })
     const sim = simulationLocations(simulation)
     const locations = {
-      blurTexture: uniform(blur, 'u_texture'), blurResolution: uniform(blur, 'u_resolution'), blurDirection: uniform(blur, 'u_direction'), blurRejectDim: uniform(blur, 'u_rejectDim'),
-      compositeScene: uniform(composite, 'u_scene'), compositeBloom: uniform(composite, 'u_bloom'),
+      blurTexture: uniform(blur, 'u_texture'), blurResolution: uniform(blur, 'u_resolution'), blurDirection: uniform(blur, 'u_direction'), blurRadius: uniform(blur, 'u_radius'), blurRejectDim: uniform(blur, 'u_rejectDim'),
+      compositeScene: uniform(composite, 'u_scene'), compositeBloom: uniform(composite, 'u_bloom'), compositeLight: uniform(composite, 'u_light'),
     }
     let targets = []
     let frame = 0
     let inactive = 0
     let running = true
     let previousActive = false
+    let previousRatio = values.current.ratio
     let activatedAt = performance.now()
     const destroyTargets = () => {
       targets.forEach(({ framebuffer, texture }) => { gl.deleteFramebuffer(framebuffer); gl.deleteTexture(texture) })
@@ -258,39 +267,45 @@ export function EnergyField({ active, color, intensity, light, ratio, styleVaria
       if (canvas.width === width && canvas.height === height && targets.length > 0) return
       canvas.width = width; canvas.height = height; destroyTargets()
       targets = [makeTarget(), makeTarget(), makeTarget(), makeTarget()]
+      targets.forEach(({ framebuffer }) => { gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT) })
       gl.bindFramebuffer(gl.FRAMEBUFFER, null)
     }
     const clearSimulation = () => {
       targets.slice(0, 2).forEach(({ framebuffer }) => {
-        gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer); gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT)
+        gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT)
       })
     }
     const draw = now => {
       if (!running) return
       resize()
       const state = values.current
-      const effectActive = styleVariant === 'reference' ? state.active && state.ratio >= 0.95 : state.active
+      const effectActive = state.active
+      const ratioChanged = Math.abs(state.ratio - previousRatio) > 0.0005
+      if (state.ratio > 0 && ratioChanged) activatedAt = now
       if (effectActive && !previousActive) { activatedAt = now; clearSimulation() }
       previousActive = effectActive
-      if (effectActive) inactive = 0; else inactive += 1
+      previousRatio = state.ratio
+      if (state.ratio > 0) inactive = 0; else inactive += 1
       const [back, scene, blurX, blurY] = targets
       const [red, green, blue] = hexRgb(state.color)
       const time = now / 1000
-      const elapsed = effectActive ? (now - activatedAt) / 1000 : -1
+      const elapsed = state.ratio > 0 ? (now - activatedAt) / 1000 : -1
       gl.viewport(0, 0, canvas.width, canvas.height); gl.bindVertexArray(vao)
 
       gl.bindFramebuffer(gl.FRAMEBUFFER, scene.framebuffer); gl.useProgram(simulation)
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, back.texture); gl.uniform1i(sim.previous, 0)
-      gl.uniform1f(sim.time, time); gl.uniform1f(sim.ratio, state.ratio); gl.uniform1f(sim.intensity, state.intensity); gl.uniform1f(sim.elapsed, elapsed); gl.uniform1f(sim.reference, styleVariant === 'reference' ? 1 : 0)
+      gl.uniform1f(sim.time, time); gl.uniform1f(sim.ratio, state.ratio); gl.uniform1f(sim.intensity, state.intensity); gl.uniform1f(sim.elapsed, elapsed); gl.uniform1f(sim.cssWidth, canvas.clientWidth)
+      gl.uniform1f(sim.light, state.light ? 1 : 0)
       gl.uniform3f(sim.color, red, green, blue); gl.drawArrays(gl.TRIANGLES, 0, 6)
 
-      gl.useProgram(blur); gl.uniform2f(locations.blurResolution, canvas.width, canvas.height); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, scene.texture); gl.uniform1i(locations.blurTexture, 0)
-      gl.bindFramebuffer(gl.FRAMEBUFFER, blurX.framebuffer); gl.uniform2f(locations.blurDirection, 1, 0); gl.uniform1f(locations.blurRejectDim, 1); gl.drawArrays(gl.TRIANGLES, 0, 6)
+      gl.useProgram(blur); gl.uniform2f(locations.blurResolution, canvas.width, canvas.height); gl.uniform1f(locations.blurRadius, 1.8); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, scene.texture); gl.uniform1i(locations.blurTexture, 0)
+      gl.bindFramebuffer(gl.FRAMEBUFFER, blurX.framebuffer); gl.uniform2f(locations.blurDirection, 1, 0); gl.uniform1f(locations.blurRejectDim, state.light ? 0 : 1); gl.drawArrays(gl.TRIANGLES, 0, 6)
       gl.bindFramebuffer(gl.FRAMEBUFFER, blurY.framebuffer); gl.bindTexture(gl.TEXTURE_2D, blurX.texture); gl.uniform2f(locations.blurDirection, 0, 1); gl.uniform1f(locations.blurRejectDim, 0); gl.drawArrays(gl.TRIANGLES, 0, 6)
 
       gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.useProgram(composite)
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, scene.texture); gl.uniform1i(locations.compositeScene, 0)
       gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, blurY.texture); gl.uniform1i(locations.compositeBloom, 1)
+      gl.uniform1f(locations.compositeLight, state.light ? 1 : 0)
       gl.drawArrays(gl.TRIANGLES, 0, 6)
       targets[0] = scene; targets[1] = back
       if (inactive < 150) frame = requestAnimationFrame(draw); else running = false
@@ -309,6 +324,6 @@ export function EnergyField({ active, color, intensity, light, ratio, styleVaria
         destroyTargets(); gl.deleteProgram(simulation); gl.deleteProgram(blur); gl.deleteProgram(composite); gl.deleteVertexArray(vao); gl.deleteBuffer(buffer)
       }
     }
-  }, [generation, styleVariant])
-  return <canvas ref={canvasRef} className="nrs-energy" aria-hidden="true" />
+  }, [generation])
+  return <canvas ref={canvasRef} className={`nrs-energy is-${light ? 'light' : 'dark'}`} data-base-color={baseColor} aria-hidden="true" />
 }

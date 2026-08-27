@@ -26,10 +26,10 @@ function Get-ComposedConfig {
 }
 
 function Assert-InstalledOnce {
-    $list = & $pnpm @prefix plugin --profile web list dsh-native-reasoning-slider --depth 0 2>&1 | Out-String
+    $list = & $pnpm @prefix plugin --profile web list dsh-reasoning-slider --depth 0 2>&1 | Out-String
     if ($LASTEXITCODE -ne 0) { throw 'Official DSH plugin list failed.' }
     $config = Get-ComposedConfig
-    if ([regex]::Matches($list, 'dsh-native-reasoning-slider@').Count -ne 1) { throw 'Candidate is not installed exactly once.' }
+    if ([regex]::Matches($list, 'dsh-reasoning-slider@').Count -ne 1) { throw 'Candidate is not installed exactly once.' }
     if ([regex]::Matches($config, 'id: wsl043-native-reasoning-slider').Count -ne 1) { throw 'Candidate bundle is not composed exactly once.' }
 }
 
@@ -62,7 +62,7 @@ try {
     Invoke-Dsh @('plugin', '--profile', 'web', 'add', $package, '--loglevel', 'error')
     Assert-InstalledOnce
     Start-And-ProbeWeb
-    Invoke-Dsh @('plugin', '--profile', 'web', 'remove', 'dsh-native-reasoning-slider', '--loglevel', 'error')
+    Invoke-Dsh @('plugin', '--profile', 'web', 'remove', 'dsh-reasoning-slider', '--loglevel', 'error')
     if ((Get-ComposedConfig) -match 'id: wsl043-native-reasoning-slider') { throw 'Candidate remains after removal.' }
     Invoke-Dsh @('plugin', '--profile', 'web', 'add', $package, '--loglevel', 'error')
     Assert-InstalledOnce

@@ -1,6 +1,22 @@
 export const MODES = Object.freeze(['official', 'native', 'energy'])
-export const ENERGY_STYLES = Object.freeze(['continuous', 'reference', 'compact'])
-export const DEFAULT_COLORS = Object.freeze({ light: '#8a49ca', dark: '#a857f7' })
+export const DEFAULT_COLORS = Object.freeze({
+  light: Object.freeze({ main: '#7c43c7', base: '#f0eff2' }),
+  dark: Object.freeze({ main: '#a857f7', base: '#111015' }),
+})
+export const PALETTE_PRESETS = Object.freeze({
+  light: Object.freeze([
+    Object.freeze({ id: 'violet', main: '#7c43c7', base: '#f0eff2' }),
+    Object.freeze({ id: 'blue', main: '#315fc6', base: '#eff1f4' }),
+    Object.freeze({ id: 'teal', main: '#087f73', base: '#eef2f1' }),
+    Object.freeze({ id: 'rose', main: '#9b3f72', base: '#f3eff1' }),
+  ]),
+  dark: Object.freeze([
+    Object.freeze({ id: 'violet', main: '#a857f7', base: '#111015' }),
+    Object.freeze({ id: 'blue', main: '#66a4ff', base: '#0d131d' }),
+    Object.freeze({ id: 'teal', main: '#54d8c5', base: '#0e1716' }),
+    Object.freeze({ id: 'rose', main: '#ee72b7', base: '#191015' }),
+  ]),
+})
 const MAX_MODEL_COLORS = 64
 const MAX_MODEL_KEY_PART = 256
 const HEX_COLOR = /^#[0-9a-f]{6}$/i
@@ -9,15 +25,28 @@ function normalizeColor(value, fallback) {
   return typeof value === 'string' && HEX_COLOR.test(value) ? value.toLowerCase() : fallback
 }
 
+function normalizeTheme(value, fallback) {
+  if (typeof value === 'string') return { main: normalizeColor(value, fallback.main), base: fallback.base }
+  if (value === null || typeof value !== 'object') return { ...fallback }
+  return {
+    main: normalizeColor(value.main, fallback.main),
+    base: normalizeColor(value.base, fallback.base),
+  }
+}
+
 function normalizePalette(value, fallback = DEFAULT_COLORS) {
   if (value === null || typeof value !== 'object') return fallback === null ? null : { ...fallback }
   if (fallback === null) {
-    if (!HEX_COLOR.test(value.light ?? '') || !HEX_COLOR.test(value.dark ?? '')) return null
-    return { light: value.light.toLowerCase(), dark: value.dark.toLowerCase() }
+    const light = normalizeTheme(value.light, DEFAULT_COLORS.light)
+    const dark = normalizeTheme(value.dark, DEFAULT_COLORS.dark)
+    const lightMain = typeof value.light === 'string' ? value.light : value.light?.main
+    const darkMain = typeof value.dark === 'string' ? value.dark : value.dark?.main
+    if (!HEX_COLOR.test(lightMain ?? '') || !HEX_COLOR.test(darkMain ?? '')) return null
+    return { light, dark }
   }
   return {
-    light: normalizeColor(value.light, fallback.light),
-    dark: normalizeColor(value.dark, fallback.dark),
+    light: normalizeTheme(value.light, fallback.light),
+    dark: normalizeTheme(value.dark, fallback.dark),
   }
 }
 
@@ -47,7 +76,7 @@ export function normalizeAppearance(value) {
       if (normalized !== null) models[key] = normalized
     }
   }
-  return { version: 1, scope: source.scope === 'model' ? 'model' : 'global', global, models }
+  return { version: 2, scope: source.scope === 'model' ? 'model' : 'global', global, models }
 }
 
 export function resolveColors(appearance, provider, model) {
@@ -58,10 +87,6 @@ export function resolveColors(appearance, provider, model) {
 
 export function normalizeMode(value) {
   return MODES.includes(value) ? value : 'energy'
-}
-
-export function normalizeEnergyStyle(value) {
-  return ENERGY_STYLES.includes(value) ? value : 'continuous'
 }
 
 export function advertisedEfforts(reasoning) {

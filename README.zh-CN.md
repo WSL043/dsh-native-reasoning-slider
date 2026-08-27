@@ -5,8 +5,9 @@
 **为 DeepSeek Harness 提供简洁、识别模型能力的推理强度控制**
 
 [![CI](https://github.com/WSL043/dsh-reasoning-slider/actions/workflows/ci.yml/badge.svg)](https://github.com/WSL043/dsh-reasoning-slider/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/dsh-native-reasoning-slider?logo=npm&label=npm)](https://www.npmjs.com/package/dsh-native-reasoning-slider)
-[![npm 总下载量](https://img.shields.io/npm/dt/dsh-native-reasoning-slider?logo=npm&label=%E6%80%BB%E4%B8%8B%E8%BD%BD%E9%87%8F)](https://www.npmjs.com/package/dsh-native-reasoning-slider)
+[![npm](https://img.shields.io/npm/v/dsh-reasoning-slider?logo=npm&label=npm)](https://www.npmjs.com/package/dsh-reasoning-slider)
+[![npm 总下载量](https://img.shields.io/npm/dt/dsh-reasoning-slider?logo=npm&label=%E6%80%BB%E4%B8%8B%E8%BD%BD%E9%87%8F)](https://www.npmjs.com/package/dsh-reasoning-slider)
+[![状态](https://img.shields.io/badge/%E7%8A%B6%E6%80%81-Beta-7c3aed.svg)](#beta-状态)
 [![MIT](https://img.shields.io/badge/license-MIT-111111.svg)](LICENSE)
 
 [交互体验](https://wsl043.github.io/dsh-reasoning-slider/) · [安装](#安装) · [三种模式](#一个插件三种模式) · [English](README.md)
@@ -30,9 +31,14 @@ DSH 中的不同模型会公布不同的推理强度档位。这个插件在输�
 - **选择明确：** 支持键盘；原生模式保持静止，选择能量模式则明确开启动态；
 - **隐私清晰：** 不读取凭据和账号，不收集遥测，也不自行发起网络请求。
 
+## Beta 状态
+
+模型能力约束和 DSH 接入已经过测试，视觉渲染器与配色交互仍在持续打磨。
+Beta 更新会兼容已有偏好，先通过真实使用反馈稳定视觉接口，再转为正式版。
+
 ## 一个插件，三种模式
 
-在 **设置 -> 通用 -> 推理强度控制** 中选择：
+在 **设置 -> 推理滑块 · Beta** 中选择：
 
 | 模式 | 效果 |
 | --- | --- |
@@ -43,14 +49,12 @@ DSH 中的不同模型会公布不同的推理强度档位。这个插件在输�
 插件市场负责安装、更新、停用和卸载；插件内部设置只负责切换外观，用户
 无需安装多个功能重复的插件。
 
-能量模式提供三种渲染器：**连续**是默认方案，会让模型公布的每个强度档位
-产生动态；**参考**以独立实现还原公开版本仅在 Max 启动的时序与像素扩散；
-**紧凑（Beta）**用于偏好更低动态的用户。浅色界面默认使用克制的蓝色，
-深色界面默认使用紫色，两种
-颜色均在 DSH 设置页中自定义。选择“全部模型”可共用一套配色；选择“按模型”
-后，可在设置页选择模型并分别设置浅色和深色配色。输入框弹层只负责调节
-推理强度。动效灵感来自 Claude，
-但实现与模型接口均保持供应商中立。
+能量模式在强度切换期间使用一套正式单元渲染器；Off 和中间档落档后恢复静态，
+模型公布的最高档则持续燃烧。它保留像素火焰场与点火喷射感，但改用恒定 CSS 像素速度，因此轨道变长不会让动画在观感
+上减速。浅色和深色界面分别提供成套预设，并允许继续精调“效果色”和“轨道
+底色”；选择“全部模型”可共用两套配色，选择“按模型”后则分别保存。旧版
+两色配置会保留原来的效果色并自动补齐推荐底色。动效灵感来自 Claude，但实现
+与模型接口均保持供应商中立。
 
 <p align="center">
   <a href="https://wsl043.github.io/dsh-reasoning-slider/"><img src="https://raw.githubusercontent.com/WSL043/dsh-reasoning-slider/main/docs/assets/reasoning-slider-energy-dark.gif" width="612" alt="从 Off 拖动到 Max 的高清推理滑杆动图"></a>
@@ -73,7 +77,7 @@ irm 'https://github.com/WSL043/dsh-reasoning-slider/releases/latest/download/ins
 也可以直接运行官方 DSH 命令：
 
 ```sh
-dsh plugin --profile web add dsh-native-reasoning-slider
+dsh plugin --profile web add dsh-reasoning-slider
 ```
 
 随后自行重启 DSH。提供 `dsh` 的 DSH 发行形式均使用同一条官方命令。
@@ -82,15 +86,15 @@ dsh plugin --profile web add dsh-native-reasoning-slider
 更新或卸载：
 
 ```sh
-dsh plugin --profile web update dsh-native-reasoning-slider
-dsh plugin --profile web remove dsh-native-reasoning-slider
+dsh plugin --profile web update dsh-reasoning-slider
+dsh plugin --profile web remove dsh-reasoning-slider
 ```
 
 ## 行为边界
 
 - 强度选择始终通过 DSH 官方模型选择接口提交；
 - 模型没有公布至少两个强度档位时，不添加虚构选项；
-- 能量效果只在紧凑弹层打开时运行；连续和紧凑方案在 Off 以上响应，参考方案按其设计仅在 Max 启动。关闭弹层即卸载，不需要动态时可选择原生模式；
+- 能量效果只在紧凑弹层打开时运行；切换强度时短暂出现，落在 Off 或中间档后恢复静态，最高档则持续运行。关闭弹层即卸载，不需要动态时可选择原生模式；
 - 本插件不读取 DeepSeek 余额或额度。账号余额属于另一个需要明确网络与
   凭据权限、独立失败处理的插件，不应和通用模型控件捆绑。
 

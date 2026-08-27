@@ -4,40 +4,65 @@ import test from 'node:test'
 
 const sourceUrl = new URL('../src/energy.jsx', import.meta.url)
 
-test('reference renderer independently locks the public package observable timing and geometry', async () => {
+test('one production renderer keeps the accepted cellular feedback geometry', async () => {
   const source = await readFile(sourceUrl, 'utf8')
-  assert.match(source, /REFERENCE_SIMULATION/u)
+  assert.match(source, /const ENERGY_SIMULATION/u)
   assert.match(source, /vec2\(72\.0,\s*6\.0\)/u)
-  assert.match(source, /ignitionDelay=mix\(0\.35,1\.2,u_reference\)/u)
-  assert.match(source, /spreadDuration=mix\(1\.05,2\.5,u_reference\)/u)
-  assert.match(source, /cubicProgress\*u_ratio\*mix\(continuousReach,1\.0,u_reference\)\*cellVelocity\*started/u)
-  assert.match(source, /retention=mix\(0\.84,0\.90,u_reference\)/u)
-  assert.match(source, /leftFadeEnd=mix\(0\.12,0\.45,u_reference\)/u)
-  assert.doesNotMatch(source, /trailReach|maxTail|u_max_reveal/u)
+  assert.match(source, /progressAge=max\(u_elapsed-randomValue\*1\.2,0\.0\)/u)
+  assert.match(source, /feedbackRetention=mix\(0\.18,0\.90,smoothstep\(0\.90,1\.0,u_ratio\)\)/u)
+  assert.match(source, /retained=history\*feedbackRetention\*leftFade/u)
+  assert.doesNotMatch(source, /REFERENCE_SIMULATION|COMPACT_SIMULATION|CONTINUOUS_SIMULATION/u)
 })
 
-test('reference is Max-only while continuous remains available across advertised effort levels', async () => {
+test('propagation is constant in CSS pixels and phase speed never changes after startup', async () => {
   const source = await readFile(sourceUrl, 'utf8')
-  assert.match(source, /styleVariant === ['"]reference['"] \? state\.active && state\.ratio >= 0\.95 : state\.active/u)
-  assert.match(source, /styleVariant === ['"]compact['"] \? COMPACT_SIMULATION : styleVariant === ['"]reference['"] \? REFERENCE_SIMULATION : CONTINUOUS_SIMULATION/u)
-  assert.match(source, /const CONTINUOUS_SIMULATION/u)
+  assert.match(source, /uniform float u_css_width/u)
+  assert.match(source, /travelPixels=progressAge\*210\.0\*cellVelocity/u)
+  assert.match(source, /traveled=min\(travelPixels\/max\(u_css_width,1\.0\),u_ratio\+0\.05\)\*started/u)
+  assert.match(source, /float timeScale=1\.0/u)
+  assert.match(source, /gl\.uniform1f\(sim\.cssWidth, canvas\.clientWidth\)/u)
+  assert.doesNotMatch(source, /cubicProgress|spreadDuration/u)
 })
 
-test('animation lifecycle resets only when an effect becomes active, never for every pointer frame', async () => {
+test('the single renderer honors the host transition and Max-level gate', async () => {
   const source = await readFile(sourceUrl, 'utf8')
+  assert.match(source, /const effectActive = state\.active/u)
+  assert.match(source, /enabled=smoothstep\(0\.001,0\.05,u_intensity\)/u)
+  assert.doesNotMatch(source, /styleVariant|referenceEnabled/u)
+})
+
+test('settled intermediate levels keep a compact bounded energy current', async () => {
+  const source = await readFile(sourceUrl, 'utf8')
+  const settled = source.slice(source.indexOf('float settledLitSide'), source.indexOf('float progressAge'))
+  assert.match(settled, /settledCore/u)
+  assert.match(settled, /settledAura/u)
+  assert.match(settled, /settledLitSide/u)
+  assert.match(settled, /settledFrameNoise/u)
+  assert.match(settled, /settledPulse/u)
+  assert.doesNotMatch(settled, /travelingSpark|arrivalFlash/u)
+})
+
+test('animation lifecycle resets feedback only when an effect becomes active', async () => {
+  const source = await readFile(sourceUrl, 'utf8')
+  assert.match(source, /const ratioChanged = Math\.abs\(state\.ratio - previousRatio\) > 0\.0005/u)
+  assert.match(source, /if \(state\.ratio > 0 && ratioChanged\) activatedAt = now/u)
   assert.match(source, /if \(effectActive && !previousActive\) \{ activatedAt = now; clearSimulation\(\) \}/u)
-  assert.doesNotMatch(source, /previousRatio|maxEnteredAt|maxRevealProgress/u)
+  const ratioBranch = source.slice(source.indexOf('const ratioChanged'), source.indexOf('if (effectActive && !previousActive)'))
+  assert.doesNotMatch(ratioBranch, /clearSimulation/u)
 })
 
-test('reference uses an independently named four-pass WebGL2 pipeline and continuous has no thumb halo', async () => {
+test('renderer keeps a four-target WebGL2 simulation, blur, and composite pipeline', async () => {
   const source = await readFile(sourceUrl, 'utf8')
   assert.match(source, /getContext\(['"]webgl2['"]/u)
   assert.match(source, /targets = \[makeTarget\(\), makeTarget\(\), makeTarget\(\), makeTarget\(\)\]/u)
   assert.match(source, /const blur = createProgram\(BLUR\)/u)
   assert.match(source, /const composite = createProgram\(COMPOSITE\)/u)
-  assert.match(source, /endpointCore/u)
-  assert.match(source, /u_reference > 0\.5 \? endpointCore : 0\.0/u)
-  assert.doesNotMatch(source, /vue-effort-slider|claude-range-slider|FRAG_SIM/u)
+})
+
+test('resize clears every feedback target before reuse', async () => {
+  const source = await readFile(sourceUrl, 'utf8')
+  assert.match(source, /targets\.forEach\(\(\{ framebuffer \}\) => \{ gl\.bindFramebuffer/u)
+  assert.match(source, /gl\.clearColor\(0, 0, 0, 0\)/u)
 })
 
 test('WebGL resources stop and rebuild safely', async () => {
@@ -50,4 +75,29 @@ test('WebGL resources stop and rebuild safely', async () => {
   assert.match(source, /cancelAnimationFrame/u)
   assert.match(source, /deleteProgram/u)
   assert.match(source, /ResizeObserver/u)
+})
+
+test('light composition preserves sharp cells and uses restrained bloom', async () => {
+  const source = await readFile(sourceUrl, 'utf8')
+  assert.match(source, /vec3 lightSource=scene\*0\.92\+bloom\*0\.22/u)
+  assert.match(source, /lightMapped=pow\(clamp\(lightSource,0\.0,1\.0\),vec3\(0\.92\)\)/u)
+  assert.match(source, /lightAlpha=smoothstep\(0\.010,0\.36,lightPeak\)\*0\.82/u)
+  assert.match(source, /gl\.uniform1f\(locations\.blurRadius, 1\.8\)/u)
+  assert.match(source, /outputColor=u_light>0\.5\?vec4\(lightMapped,lightAlpha\):vec4\(mapped,1\.0\)/u)
+})
+
+test('light uses an analogous hue ladder instead of a white dark-theme core', async () => {
+  const source = await readFile(sourceUrl, 'utf8')
+  assert.match(source, /vec3 rgbToHsv/u)
+  assert.match(source, /sourceHsv\.x\+0\.035/u)
+  assert.match(source, /sourceHsv\.x-0\.025/u)
+  assert.match(source, /coolColor=mix\(u_color\*0\.35,lightTail,u_light\)/u)
+  assert.match(source, /warmWhite=mix\(vec3\(1\.0,0\.94,0\.98\),lightCore,u_light\)/u)
+})
+
+test('endpoint cores cannot illuminate the unselected side of the thumb', async () => {
+  const source = await readFile(sourceUrl, 'utf8')
+  assert.match(source, /float litSide=step\(coordinate\.x,u_ratio\+0\.003\)/u)
+  assert.match(source, /endpointCore=.*\*litSide/u)
+  assert.match(source, /3\.5,2\.0\).*\*litSide/u)
 })

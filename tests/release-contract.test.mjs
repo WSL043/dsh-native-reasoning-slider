@@ -8,15 +8,15 @@ test('both public READMEs show cumulative npm downloads, never a time-window cou
     readFile(new URL('../README.zh-CN.md', import.meta.url), 'utf8'),
   ])
   for (const readme of readmes) {
-    assert.match(readme, /img\.shields\.io\/npm\/dt\/dsh-native-reasoning-slider/)
-    assert.doesNotMatch(readme, /img\.shields\.io\/npm\/d(?:m|w|y)\/dsh-native-reasoning-slider/)
+    assert.match(readme, /img\.shields\.io\/npm\/dt\/dsh-reasoning-slider/)
+    assert.doesNotMatch(readme, /img\.shields\.io\/npm\/d(?:m|w|y)\/dsh-reasoning-slider/)
   }
 })
 
 test('release reuses one accepted package and publishes npm through OIDC', async () => {
   const workflow = await readFile(new URL('../.github/workflows/release.yml', import.meta.url), 'utf8')
   assert.match(workflow, /id-token:\s*write/)
-  assert.match(workflow, /npm publish \.release-artifact\/dsh-native-reasoning-slider\.tgz --access public/)
+  assert.match(workflow, /npm publish \.release-artifact\/dsh-reasoning-slider\.tgz --access public/)
   assert.match(workflow, /gh release download[^\n]*\$RELEASE_TAG/s)
   assert.match(workflow, /actions\/download-artifact@v8/)
   assert.doesNotMatch(workflow, /NODE_AUTH_TOKEN|NPM_TOKEN/)
@@ -33,12 +33,12 @@ test('release is main-only, immutable, and uses current action runtimes', async 
 
 test('release carries both the accepted package and installer between jobs', async () => {
   const workflow = await readFile(new URL('../.github/workflows/release.yml', import.meta.url), 'utf8')
-  assert.match(workflow, /path:\s*\|[\s\S]*\.candidate\/dsh-native-reasoning-slider\.tgz[\s\S]*\.candidate\/install\.ps1/)
-  assert.match(workflow, /gh release create[^\n]*\.candidate\/dsh-native-reasoning-slider\.tgz \.candidate\/install\.ps1/)
+  assert.match(workflow, /path:\s*\|[\s\S]*\.candidate\/dsh-reasoning-slider\.tgz[\s\S]*\.candidate\/install\.ps1/)
+  assert.match(workflow, /gh release create[^\n]*\.candidate\/dsh-reasoning-slider\.tgz \.candidate\/install\.ps1/)
 })
 
 test('publication waits for installed official DSH acceptance of the exact candidate', async () => {
   const workflow = await readFile(new URL('../.github/workflows/release.yml', import.meta.url), 'utf8')
-  assert.match(workflow, /official-acceptance:[\s\S]*accept-official-release\.ps1[\s\S]*dsh-native-reasoning-slider\.tgz/u)
+  assert.match(workflow, /official-acceptance:[\s\S]*accept-official-release\.ps1[\s\S]*dsh-reasoning-slider\.tgz/u)
   assert.match(workflow, /release:[\s\S]*needs:\s*\[[^\]]*official-acceptance[^\]]*\]/u)
 })

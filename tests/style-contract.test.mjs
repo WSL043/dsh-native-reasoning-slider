@@ -35,10 +35,10 @@ test('the energy capsule follows the selected sample 7 geometry and settings rem
   const source = await readFile(new URL('../src/styles.js', import.meta.url), 'utf8')
   assert.match(source, /\.nrs-track-wrap\{[^}]*--nrs-thumb-center:calc\(14px \+ \(100% - 28px\) \* var\(--nrs-ratio\)\)[^}]*height:28px[^}]*border-radius:9px/)
   assert.match(source, /\.nrs-track-wrap\{[^}]*box-sizing:border-box/)
-  assert.match(source, /\.nrs-track-background\{/)
-  assert.match(source, /\.nrs-energy-bed\{[^}]*width:var\(--nrs-thumb-center\)/)
-  assert.match(source, /\.nrs-effort\.is-energy:not\(\.is-reference\) \.nrs-energy\{[^}]*opacity:var\(--nrs-canvas-opacity\)/)
-  assert.match(source, /\.nrs-effort\.is-energy\.is-reference\.is-max \.nrs-energy\{[^}]*opacity:1/)
+  assert.doesNotMatch(source, /nrs-track-background|linear-gradient\(135deg,color-mix\(in srgb,var\(--nrs-base-color\)/)
+  assert.doesNotMatch(source, /\.nrs-track-wrap\{[^}]*box-shadow/)
+  assert.doesNotMatch(source, /\.nrs-energy-bed/)
+  assert.match(source, /\.nrs-effort\.is-energy \.nrs-energy\{[^}]*opacity:var\(--nrs-canvas-opacity\)/)
   assert.match(source, /\.nrs-track-thumb\{[^}]*left:var\(--nrs-thumb-center\)[^}]*width:27px[^}]*height:27px/)
   assert.match(source, /\.nrs-track-thumb\{[^}]*box-sizing:border-box/)
   assert.match(source, /\.nrs-range\{[^}]*inset:0[^}]*width:100%/)
@@ -54,11 +54,21 @@ test('the energy capsule follows the selected sample 7 geometry and settings rem
   assert.match(source, /@media\(max-width:480px\)[^{]*\{[^}]*\.nrs-effort-popover\{[^}]*right:-48px[^}]*width:min\(276px,calc\(100vw - 88px\)\)/)
 })
 
-test('custom energy colors use a single plugin variable without generic rainbow gradients', async () => {
+test('custom track and paired palette controls avoid generic rainbow effects', async () => {
   const source = await readFile(new URL('../src/styles.js', import.meta.url), 'utf8')
-  assert.match(source, /--nrs-color/)
+  assert.match(source, /--nrs-base-color/)
   assert.match(source, /\.nrs-color-control/)
+  assert.match(source, /\.nrs-preset/)
+  assert.match(source, /\.nrs-energy\.is-light\{[^}]*mix-blend-mode:normal/)
+  assert.match(source, /\.nrs-energy\.is-dark\{[^}]*mix-blend-mode:screen/)
   assert.doesNotMatch(source, /conic-gradient|hue-rotate/)
+})
+
+test('discarded renderer switch styles are absent and paired palette controls are compact', async () => {
+  const source = await readFile(new URL('../src/styles.js', import.meta.url), 'utf8')
+  assert.doesNotMatch(source, /\.nrs-style-switcher|\.nrs-style-option/)
+  assert.match(source, /\.nrs-preset-list/)
+  assert.match(source, /\.nrs-palette-fine-tune/)
 })
 
 test('settings color controls expose a visible keyboard focus state', async () => {
