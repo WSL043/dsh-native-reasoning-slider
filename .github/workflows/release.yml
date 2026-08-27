@@ -193,7 +193,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
-      contents: read
+      contents: write
       id-token: write
     steps:
       - uses: actions/checkout@v7
@@ -216,12 +216,24 @@ jobs:
         run: |
           mkdir -p .release-artifact
           gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern dsh-reasoning-slider.tgz --dir .release-artifact
-      - name: Publish with npm Trusted Publishing
+      - name: Publish or reconcile with npm
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.preflight.outputs.tag }}
         shell: bash
         run: |
+          set -euo pipefail
           version="$(node -p "require('./package.json').version")"
-          if npm view "dsh-reasoning-slider@$version" version >/dev/null 2>&1; then
-            echo "dsh-reasoning-slider@$version is already published."
+          if tarball="$(npm view "dsh-reasoning-slider@$version" dist.tarball 2>/dev/null)"; then
+            curl --fail --location --silent --show-error "$tarball" --output "$RUNNER_TEMP/npm.tgz"
+            if ! cmp -s .release-artifact/dsh-reasoning-slider.tgz "$RUNNER_TEMP/npm.tgz"; then
+              mkdir -p "$RUNNER_TEMP/local" "$RUNNER_TEMP/remote"
+              tar -xzf .release-artifact/dsh-reasoning-slider.tgz -C "$RUNNER_TEMP/local"
+              tar -xzf "$RUNNER_TEMP/npm.tgz" -C "$RUNNER_TEMP/remote"
+              diff -qr --strip-trailing-cr --exclude='*.map' "$RUNNER_TEMP/local/package" "$RUNNER_TEMP/remote/package"
+              gh release upload "$RELEASE_TAG" "$RUNNER_TEMP/npm.tgz#dsh-reasoning-slider.tgz" \
+                --repo "$GITHUB_REPOSITORY" --clobber
+            fi
           else
             npm publish .release-artifact/dsh-reasoning-slider.tgz --access public
           fi
