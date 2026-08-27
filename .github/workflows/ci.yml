@@ -1,4 +1,4 @@
-name: CI
+name: Risk-based CI
 
 on:
   push:
@@ -9,20 +9,109 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  verify:
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      behavior: ${{ steps.plan.outputs.behavior }}
+      delivery: ${{ steps.plan.outputs.delivery }}
+      demo: ${{ steps.plan.outputs.demo }}
+      installer: ${{ steps.plan.outputs.installer }}
+      official: ${{ steps.plan.outputs.official }}
+    steps:
+      - uses: actions/checkout@v7
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v7
+        with: { node-version: 24, package-manager-cache: false }
+      - id: plan
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        shell: bash
+        run: |
+          published="$(npm view dsh-reasoning-slider dist-tags.latest)"
+          node scripts/ci-change-plan.mjs --base "$BASE_SHA" --published "$published"
+
+  behavior:
+    needs: plan
+    if: needs.plan.outputs.behavior == 'true'
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
-        with:
-          version: 11.19.0
+        with: { version: 11.19.0, run_install: false }
       - uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: pnpm
+        with: { node-version: 24, cache: pnpm }
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run check
+      - name: Run model policy, animation, and visual-state behavior
+        run: pnpm run test:behavior
+      - run: pnpm run build
+      - run: git diff --exit-code -- lib
+      - run: pnpm pack --pack-destination .artifacts
+      - uses: actions/upload-artifact@v7
+        with:
+          name: reasoning-slider-${{ github.sha }}
+          path: .artifacts/*.tgz
+          if-no-files-found: error
+
+  delivery:
+    needs: plan
+    if: needs.plan.outputs.delivery == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with: { version: 11.19.0, run_install: false }
+      - uses: actions/setup-node@v7
+        with: { node-version: 24, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run test:delivery
+
+  demo:
+    needs: plan
+    if: needs.plan.outputs.demo == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with: { version: 11.19.0, run_install: false }
+      - uses: actions/setup-node@v7
+        with: { node-version: 24, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build:demo
+      - run: git diff --exit-code -- docs
+
+  windows-installer:
+    needs: plan
+    if: needs.plan.outputs.installer == 'true'
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: 24, package-manager-cache: false }
+      - run: node --test tests/windows-installer.test.mjs
+
+  official-dsh:
+    name: Official DSH end-to-end acceptance
+    needs: [plan, behavior]
+    if: needs.plan.outputs.official == 'true' && needs.behavior.result == 'success'
+    runs-on: windows-2025
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with: { version: 11.19.0, run_install: false }
+      - uses: actions/setup-node@v7
+        with: { node-version: 24, package-manager-cache: false }
+      - uses: actions/download-artifact@v8
+        with:
+          name: reasoning-slider-${{ github.sha }}
+          path: .candidate
+      - name: Install, compose, start Web, remove, and reinstall
+        shell: powershell
+        run: |
+          $package = (Get-ChildItem .candidate -Filter '*.tgz' | Select-Object -First 1).FullName
+          .\.github\scripts\accept-official-release.ps1 -PackagePath $package -DshVersion (node -p "require('./compatibility.json').latestTested")

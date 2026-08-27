@@ -47,6 +47,8 @@
   "scripts": {
     "build": "tsdown --config tsdown.config.mjs",
     "build:demo": "tsdown --config tsdown.demo.config.mjs && node -e \"const fs=require('node:fs');fs.copyFileSync('demo/style.css','docs/demo.css');fs.copyFileSync('demo/palette.css','docs/palette.css')\"",
+    "test:behavior": "node --test tests/client-contract.test.mjs tests/energy-contract.test.mjs tests/policy.test.mjs tests/style-contract.test.mjs",
+    "test:delivery": "node --test tests/demo-contract.test.mjs tests/prepare-compat-release.test.mjs tests/release-contract.test.mjs",
     "test": "node --test tests/*.test.mjs",
     "check": "pnpm run test && pnpm run build && pnpm run build:demo && pnpm pack --pack-destination .artifacts"
   },
