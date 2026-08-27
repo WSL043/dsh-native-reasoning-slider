@@ -56,6 +56,7 @@ jobs:
           name: reasoning-slider-${{ github.sha }}
           path: .artifacts/*.tgz
           if-no-files-found: error
+          include-hidden-files: true
 
   delivery:
     needs: plan
