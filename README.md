@@ -1,20 +1,20 @@
 <div align="center">
 
-# DSH Native Effort Slider
+# DSH Reasoning Slider
 
 **A compact, model-aware effort control for DeepSeek Harness**
 
-[![CI](https://github.com/WSL043/dsh-native-reasoning-slider/actions/workflows/ci.yml/badge.svg)](https://github.com/WSL043/dsh-native-reasoning-slider/actions/workflows/ci.yml)
+[![CI](https://github.com/WSL043/dsh-reasoning-slider/actions/workflows/ci.yml/badge.svg)](https://github.com/WSL043/dsh-reasoning-slider/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/dsh-native-reasoning-slider?logo=npm&label=npm)](https://www.npmjs.com/package/dsh-native-reasoning-slider)
 [![total npm downloads](https://img.shields.io/npm/dt/dsh-native-reasoning-slider?logo=npm&label=total%20downloads)](https://www.npmjs.com/package/dsh-native-reasoning-slider)
 [![MIT](https://img.shields.io/badge/license-MIT-111111.svg)](LICENSE)
 
-[Live demo](https://wsl043.github.io/dsh-native-reasoning-slider/) · [Install](#install) · [Modes](#three-modes-one-plugin) · [简体中文](README.zh-CN.md)
+[Live demo](https://wsl043.github.io/dsh-reasoning-slider/) · [Install](#install) · [Modes](#three-modes-one-plugin) · [简体中文](README.zh-CN.md)
 
 </div>
 
 <p align="center">
-  <a href="https://wsl043.github.io/dsh-native-reasoning-slider/"><img src="https://raw.githubusercontent.com/WSL043/dsh-native-reasoning-slider/main/docs/assets/reasoning-slider-hero-dark-en.png" width="900" alt="Dark DeepSeek Harness composer with the Energy effort slider enlarged"></a>
+  <a href="https://wsl043.github.io/dsh-reasoning-slider/"><img src="https://raw.githubusercontent.com/WSL043/dsh-reasoning-slider/main/docs/assets/reasoning-slider-hero-dark-en.png" width="900" alt="Dark DeepSeek Harness composer with the Energy effort slider enlarged"></a>
 </p>
 
 ## Why this plugin
@@ -56,13 +56,13 @@ The motion is Claude-inspired, but the implementation and model contract are
 provider-neutral.
 
 <p align="center">
-  <a href="https://wsl043.github.io/dsh-native-reasoning-slider/"><img src="https://raw.githubusercontent.com/WSL043/dsh-native-reasoning-slider/main/docs/assets/reasoning-slider-energy-dark.gif" width="612" alt="High-resolution animation of the effort slider moving from Off through Max"></a>
+  <a href="https://wsl043.github.io/dsh-reasoning-slider/"><img src="https://raw.githubusercontent.com/WSL043/dsh-reasoning-slider/main/docs/assets/reasoning-slider-energy-dark.gif" width="612" alt="High-resolution animation of the effort slider moving from Off through Max"></a>
 </p>
 
-Try the same production renderer on the [interactive experience page](https://wsl043.github.io/dsh-native-reasoning-slider/). It supports dragging, keyboard input, light/dark appearance, and live color adjustment without connecting to an account.
+Try the same production renderer on the [interactive experience page](https://wsl043.github.io/dsh-reasoning-slider/). It supports dragging, keyboard input, light/dark appearance, and live color adjustment without connecting to an account.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/WSL043/dsh-native-reasoning-slider/main/docs/assets/mode-settings-en.png" width="820" alt="Official, Native, and Energy presentation modes in DSH Settings">
+  <img src="https://raw.githubusercontent.com/WSL043/dsh-reasoning-slider/main/docs/assets/mode-settings-en.png" width="820" alt="Official, Native, and Energy presentation modes in DSH Settings">
 </p>
 
 ## Install
@@ -71,7 +71,7 @@ Beginner-friendly PowerShell helper (it still installs through DSH's official
 plugin command):
 
 ```powershell
-irm 'https://github.com/WSL043/dsh-native-reasoning-slider/releases/latest/download/install.ps1' | iex
+irm 'https://github.com/WSL043/dsh-reasoning-slider/releases/latest/download/install.ps1' | iex
 ```
 
 Or use the official DSH command directly:
@@ -104,4 +104,4 @@ dsh plugin --profile web remove dsh-native-reasoning-slider
 
 This community project is not affiliated with or endorsed by DeepSeek.
 
-[Report a bug](https://github.com/WSL043/dsh-native-reasoning-slider/issues) · [Security](SECURITY.md) · [MIT](LICENSE)
+[Report a bug](https://github.com/WSL043/dsh-reasoning-slider/issues) · [Security](SECURITY.md) · [MIT](LICENSE)

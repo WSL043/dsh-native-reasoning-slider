@@ -1,20 +1,20 @@
 <div align="center">
 
-# DSH 原生 Effort 滑杆
+# DSH 推理滑杆
 
 **为 DeepSeek Harness 提供简洁、识别模型能力的推理强度控制**
 
-[![CI](https://github.com/WSL043/dsh-native-reasoning-slider/actions/workflows/ci.yml/badge.svg)](https://github.com/WSL043/dsh-native-reasoning-slider/actions/workflows/ci.yml)
+[![CI](https://github.com/WSL043/dsh-reasoning-slider/actions/workflows/ci.yml/badge.svg)](https://github.com/WSL043/dsh-reasoning-slider/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/dsh-native-reasoning-slider?logo=npm&label=npm)](https://www.npmjs.com/package/dsh-native-reasoning-slider)
 [![npm 总下载量](https://img.shields.io/npm/dt/dsh-native-reasoning-slider?logo=npm&label=%E6%80%BB%E4%B8%8B%E8%BD%BD%E9%87%8F)](https://www.npmjs.com/package/dsh-native-reasoning-slider)
 [![MIT](https://img.shields.io/badge/license-MIT-111111.svg)](LICENSE)
 
-[交互体验](https://wsl043.github.io/dsh-native-reasoning-slider/) · [安装](#安装) · [三种模式](#一个插件三种模式) · [English](README.md)
+[交互体验](https://wsl043.github.io/dsh-reasoning-slider/) · [安装](#安装) · [三种模式](#一个插件三种模式) · [English](README.md)
 
 </div>
 
 <p align="center">
-  <a href="https://wsl043.github.io/dsh-native-reasoning-slider/"><img src="https://raw.githubusercontent.com/WSL043/dsh-native-reasoning-slider/main/docs/assets/reasoning-slider-hero-dark-en.png" width="900" alt="暗色 DeepSeek Harness 输入区与局部放大的能量推理滑杆"></a>
+  <a href="https://wsl043.github.io/dsh-reasoning-slider/"><img src="https://raw.githubusercontent.com/WSL043/dsh-reasoning-slider/main/docs/assets/reasoning-slider-hero-dark-en.png" width="900" alt="暗色 DeepSeek Harness 输入区与局部放大的能量推理滑杆"></a>
 </p>
 
 ## 为什么做这个插件
@@ -53,13 +53,13 @@ DSH 中的不同模型会公布不同的推理强度档位。这个插件在输�
 但实现与模型接口均保持供应商中立。
 
 <p align="center">
-  <a href="https://wsl043.github.io/dsh-native-reasoning-slider/"><img src="https://raw.githubusercontent.com/WSL043/dsh-native-reasoning-slider/main/docs/assets/reasoning-slider-energy-dark.gif" width="612" alt="从 Off 拖动到 Max 的高清推理滑杆动图"></a>
+  <a href="https://wsl043.github.io/dsh-reasoning-slider/"><img src="https://raw.githubusercontent.com/WSL043/dsh-reasoning-slider/main/docs/assets/reasoning-slider-energy-dark.gif" width="612" alt="从 Off 拖动到 Max 的高清推理滑杆动图"></a>
 </p>
 
-可在[交互体验页](https://wsl043.github.io/dsh-native-reasoning-slider/)直接操作同一套正式渲染器，体验拖动、键盘、浅色/深色界面和实时配色；页面不连接任何账号。
+可在[交互体验页](https://wsl043.github.io/dsh-reasoning-slider/)直接操作同一套正式渲染器，体验拖动、键盘、浅色/深色界面和实时配色；页面不连接任何账号。
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/WSL043/dsh-native-reasoning-slider/main/docs/assets/mode-settings-zh.png" width="820" alt="DSH 设置中的官方、原生与能量三种模式">
+  <img src="https://raw.githubusercontent.com/WSL043/dsh-reasoning-slider/main/docs/assets/mode-settings-zh.png" width="820" alt="DSH 设置中的官方、原生与能量三种模式">
 </p>
 
 ## 安装
@@ -67,7 +67,7 @@ DSH 中的不同模型会公布不同的推理强度档位。这个插件在输�
 PowerShell 一键安装助手（内部仍调用 DSH 官方插件命令）：
 
 ```powershell
-irm 'https://github.com/WSL043/dsh-native-reasoning-slider/releases/latest/download/install.ps1' | iex
+irm 'https://github.com/WSL043/dsh-reasoning-slider/releases/latest/download/install.ps1' | iex
 ```
 
 也可以直接运行官方 DSH 命令：
@@ -96,4 +96,4 @@ dsh plugin --profile web remove dsh-native-reasoning-slider
 
 本项目为社区项目，与 DeepSeek 无隶属或背书关系。
 
-[反馈问题](https://github.com/WSL043/dsh-native-reasoning-slider/issues) · [安全说明](SECURITY.md) · [MIT](LICENSE)
+[反馈问题](https://github.com/WSL043/dsh-reasoning-slider/issues) · [安全说明](SECURITY.md) · [MIT](LICENSE)
