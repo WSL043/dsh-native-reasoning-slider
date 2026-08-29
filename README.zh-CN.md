@@ -63,7 +63,7 @@ Beta 更新会兼容已有偏好，先通过真实使用反馈稳定视觉接口
 可在[交互体验页](https://wsl043.github.io/dsh-reasoning-slider/)直接操作同一套正式渲染器，体验拖动、键盘、浅色/深色界面和实时配色；页面不连接任何账号。
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/WSL043/dsh-reasoning-slider/main/docs/assets/mode-settings-zh.png" width="820" alt="DSH 设置中的官方、原生与能量三种模式">
+  <img src="https://raw.githubusercontent.com/WSL043/dsh-reasoning-slider/main/docs/assets/mode-settings-zh.png" width="820" alt="DSH 推理强度控制设置中的能量模式与浅色、深色独立配色">
 </p>
 
 ## 安装

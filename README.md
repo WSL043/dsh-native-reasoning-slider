@@ -71,7 +71,7 @@ provider-neutral.
 Try the same production renderer on the [interactive experience page](https://wsl043.github.io/dsh-reasoning-slider/). It supports dragging, keyboard input, light/dark appearance, and live color adjustment without connecting to an account.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/WSL043/dsh-reasoning-slider/main/docs/assets/mode-settings-en.png" width="820" alt="Official, Native, and Energy presentation modes in DSH Settings">
+  <img src="https://raw.githubusercontent.com/WSL043/dsh-reasoning-slider/main/docs/assets/mode-settings-en.png" width="820" alt="DSH Reasoning control settings with Energy mode and separate light and dark palettes">
 </p>
 
 ## Install
