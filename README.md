@@ -1,110 +1,97 @@
 <div align="center">
 
-# DSH Reasoning Slider
+# DSH 推理滑杆
 
-**A compact, model-aware effort control for DeepSeek Harness**
+**为 DeepSeek Harness 提供简洁、识别模型能力的推理强度控制**
 
 [![CI](https://github.com/WSL043/dsh-reasoning-slider/actions/workflows/ci.yml/badge.svg)](https://github.com/WSL043/dsh-reasoning-slider/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/dsh-reasoning-slider?logo=npm&label=npm)](https://www.npmjs.com/package/dsh-reasoning-slider)
-[![total npm downloads](https://img.shields.io/npm/dt/dsh-reasoning-slider?logo=npm&label=total%20downloads)](https://www.npmjs.com/package/dsh-reasoning-slider)
-[![status](https://img.shields.io/badge/status-Beta-7c3aed.svg)](#beta-status)
+[![npm 总下载量](https://img.shields.io/npm/dt/dsh-reasoning-slider?logo=npm&label=%E6%80%BB%E4%B8%8B%E8%BD%BD%E9%87%8F)](https://www.npmjs.com/package/dsh-reasoning-slider)
+[![状态](https://img.shields.io/badge/%E7%8A%B6%E6%80%81-Beta-7c3aed.svg)](#beta-状态)
 [![MIT](https://img.shields.io/badge/license-MIT-111111.svg)](LICENSE)
 
-[Live demo](https://wsl043.github.io/dsh-reasoning-slider/) · [Install](#install) · [Modes](#three-modes-one-plugin) · [简体中文](README.zh-CN.md)
+[交互体验](https://wsl043.github.io/dsh-reasoning-slider/) · [安装](#安装) · [三种模式](#一个插件三种模式) · [English](README.en.md)
 
 </div>
 
 <p align="center">
-  <a href="https://wsl043.github.io/dsh-reasoning-slider/"><img src="https://raw.githubusercontent.com/WSL043/dsh-reasoning-slider/main/docs/assets/reasoning-slider-hero-dark-en.png" width="900" alt="Dark DeepSeek Harness composer with the Energy effort slider enlarged"></a>
+  <a href="https://wsl043.github.io/dsh-reasoning-slider/"><img src="https://raw.githubusercontent.com/WSL043/dsh-reasoning-slider/main/docs/assets/reasoning-slider-hero-dark-en.png" width="900" alt="暗色 DeepSeek Harness 输入区与局部放大的能量推理滑杆"></a>
 </p>
 
-## Why this plugin
+## 为什么做这个插件
 
-DSH models can advertise different reasoning-effort levels. This plugin keeps
-the composer to two small pills—model and effort—and opens the exact advertised
-levels in a compact slider only when you need it. It does not invent unsupported
-capabilities or change provider routing.
+DSH 中的不同模型会公布不同的推理强度档位。这个插件在输入框中只保留
+“模型”和“强度”两个小胶囊，需要时才从强度胶囊展开紧凑滑杆；不虚构
+模型能力，也不改变供应商路由。
 
-- **Model-aware:** uses only the levels reported by the selected model.
-- **Efficient:** dragging is local preview; DSH receives one selection on release.
-- **Native:** separates model selection from a 28 px effort pill and follows DSH tokens and contracts.
-- **Personal:** one light/dark palette for every model, or a separate palette for each model.
-- **Deliberate:** keyboard input works; Native stays still, while choosing Energy explicitly enables motion.
-- **Private:** no credentials, account access, telemetry, or plugin-owned network calls.
+- **识别模型能力：** 只显示当前模型实际提供的档位；
+- **低开销：** 拖动时只做本地预览，松手后才向 DSH 提交一次；
+- **原生风格：** 模型与 28px 强度胶囊分离，并沿用 DSH 的设计变量与接口；
+- **个性配色：** 可为所有模型统一设置浅色/深色配色，也可按模型分别保存；
+- **选择明确：** 支持键盘；原生模式保持静止，选择能量模式则明确开启动态；
+- **隐私清晰：** 不读取凭据和账号，不收集遥测，也不自行发起网络请求。
 
-## Beta status
+## Beta 状态
 
-The model contract and safe DSH integration are tested, while the visual
-renderers and palette controls remain in active iteration. Beta updates keep
-existing preferences compatible and are published for hands-on feedback before
-the visual API is declared stable.
+模型能力约束和 DSH 接入已经过测试，视觉渲染器与配色交互仍在持续打磨。
+Beta 更新会兼容已有偏好，先通过真实使用反馈稳定视觉接口，再转为正式版。
 
-## Three modes, one plugin
+## 一个插件，三种模式
 
-Choose the presentation in **Settings -> Effort · Beta**:
+在 **设置 -> 推理滑块 · Beta** 中选择：
 
-| Mode | Behavior |
+| 模式 | 效果 |
 | --- | --- |
-| **Official** | Restores DSH's unmodified model selector |
-| **Native** | Adds a quiet effort pill with a compact popover slider |
-| **Energy** | Adds a brief, independently implemented WebGL cell-and-bloom effect while dragging and settling |
+| **官方** | 完全恢复 DSH 官方模型选择器 |
+| **原生** | 使用安静的强度胶囊与紧凑弹出滑杆 |
+| **能量** | 拖动与提交完成时显示短暂、独立实现的 WebGL 单元与辉光效果 |
 
-The plugin market remains the place to install, update, disable, or remove the
-plugin. The setting changes presentation without installing duplicate plugins.
+插件市场负责安装、更新、停用和卸载；插件内部设置只负责切换外观，用户
+无需安装多个功能重复的插件。
 
-Energy mode uses one production cellular renderer during effort changes. Off
-and intermediate levels become visually still after settling, while the
-model's maximum effort keeps the field burning. It
-preserves the pixel field and ignition character while using constant
-CSS-pixel propagation, so a longer rail does not make the animation appear to
-slow down. Light and dark appearances each offer paired presets plus editable
-**effect** and **track** colors. Choose **All models** to share both palettes,
-or **Per model** to remember them for each discovered model. Existing two-color
-preferences keep their effect colors and receive the recommended track defaults.
-The motion is Claude-inspired, but the implementation and model contract remain
-provider-neutral.
+能量模式在强度切换期间使用一套正式单元渲染器；Off 和中间档落档后恢复静态，
+模型公布的最高档则持续燃烧。它保留像素火焰场与点火喷射感，但改用恒定 CSS 像素速度，因此轨道变长不会让动画在观感
+上减速。浅色和深色界面分别提供成套预设，并允许继续精调“效果色”和“轨道
+底色”；选择“全部模型”可共用两套配色，选择“按模型”后则分别保存。旧版
+两色配置会保留原来的效果色并自动补齐推荐底色。动效灵感来自 Claude，但实现
+与模型接口均保持供应商中立。
 
 <p align="center">
-  <a href="https://wsl043.github.io/dsh-reasoning-slider/"><img src="https://raw.githubusercontent.com/WSL043/dsh-reasoning-slider/main/docs/assets/reasoning-slider-energy-dark.gif" width="612" alt="High-resolution animation of the effort slider moving from Off through Max"></a>
+  <a href="https://wsl043.github.io/dsh-reasoning-slider/"><img src="https://raw.githubusercontent.com/WSL043/dsh-reasoning-slider/main/docs/assets/reasoning-slider-energy-dark.gif" width="612" alt="从 Off 拖动到 Max 的高清推理滑杆动图"></a>
 </p>
 
-Try the same production renderer on the [interactive experience page](https://wsl043.github.io/dsh-reasoning-slider/). It supports dragging, keyboard input, light/dark appearance, and live color adjustment without connecting to an account.
+可在[交互体验页](https://wsl043.github.io/dsh-reasoning-slider/)直接操作同一套正式渲染器，体验拖动、键盘、浅色/深色界面和实时配色；页面不连接任何账号。
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/WSL043/dsh-reasoning-slider/main/docs/assets/mode-settings-en.png" width="820" alt="DSH Reasoning control settings with Energy mode and separate light and dark palettes">
+  <img src="https://raw.githubusercontent.com/WSL043/dsh-reasoning-slider/main/docs/assets/mode-settings-zh.png" width="820" alt="DSH 推理强度控制设置中的能量模式与浅色、深色独立配色">
 </p>
 
-## Install
+## 安装
 
-Use the standard DSH command:
+直接运行 DSH 标准命令：
 
 ```sh
 dsh plugin --profile web add dsh-reasoning-slider
 ```
 
-Then restart DSH. The same official command works with DSH distributions that
-provide `dsh`. This plugin is tested against the latest DSH release shown in
-the package metadata.
+随后自行重启 DSH。提供 `dsh` 的 DSH 发行形式均使用同一条官方命令。
+本插件以软件包元数据中标明的最新 DSH 版本完成测试。
 
-Update or uninstall:
+更新或卸载：
 
 ```sh
 dsh plugin --profile web update dsh-reasoning-slider
 dsh plugin --profile web remove dsh-reasoning-slider
 ```
 
-## Behavior and limits
+## 行为边界
 
-- The selected effort applies through DSH's normal model-selection contract.
-- Models with fewer than two advertised effort levels keep the standard model
-  selector and show no artificial slider choices.
-- Energy rendering runs only while its compact popover is open. It appears
-  briefly while the effort changes, becomes still after settling on Off or an
-  intermediate level, and remains active at the maximum advertised effort.
-  Closing the popover unloads it; choose Native for a still control.
-- This plugin does not show DeepSeek balance or quota. Account-specific balance
-  access belongs in a separate plugin with explicit permissions and failure UI.
+- 强度选择始终通过 DSH 官方模型选择接口提交；
+- 模型没有公布至少两个强度档位时，不添加虚构选项；
+- 能量效果只在紧凑弹层打开时运行；切换强度时短暂出现，落在 Off 或中间档后恢复静态，最高档则持续运行。关闭弹层即卸载，不需要动态时可选择原生模式；
+- 本插件不读取 DeepSeek 余额或额度。账号余额属于另一个需要明确网络与
+  凭据权限、独立失败处理的插件，不应和通用模型控件捆绑。
 
-This community project is not affiliated with or endorsed by DeepSeek.
+本项目为社区项目，与 DeepSeek 无隶属或背书关系。
 
-[Report a bug](https://github.com/WSL043/dsh-reasoning-slider/issues) · [Security](SECURITY.md) · [MIT](LICENSE)
+[反馈问题](https://github.com/WSL043/dsh-reasoning-slider/issues) · [安全说明](SECURITY.md) · [MIT](LICENSE)
