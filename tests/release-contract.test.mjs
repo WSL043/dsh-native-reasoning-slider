@@ -31,10 +31,12 @@ test('release is main-only, immutable, and uses current action runtimes', async 
   assert.match(workflow, /actions\/setup-node@v7/)
 })
 
-test('release carries both the accepted package and installer between jobs', async () => {
+test('release carries the accepted package between jobs and documents the standard DSH command', async () => {
   const workflow = await readFile(new URL('../.github/workflows/release.yml', import.meta.url), 'utf8')
-  assert.match(workflow, /path:\s*\|[\s\S]*\.candidate\/dsh-reasoning-slider\.tgz[\s\S]*\.candidate\/install\.ps1/)
-  assert.match(workflow, /gh release create[^\n]*\.candidate\/dsh-reasoning-slider\.tgz \.candidate\/install\.ps1/)
+  assert.match(workflow, /path:\s*\.candidate\/dsh-reasoning-slider\.tgz/)
+  assert.match(workflow, /gh release create[^\n]*\.candidate\/dsh-reasoning-slider\.tgz/)
+  assert.match(workflow, /dsh plugin --profile web add dsh-reasoning-slider/)
+  assert.doesNotMatch(workflow, /\birm\b|install\.ps1/iu)
 })
 
 test('publication waits for installed official DSH acceptance of the exact candidate', async () => {

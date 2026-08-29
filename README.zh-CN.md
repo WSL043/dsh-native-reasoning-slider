@@ -68,13 +68,7 @@ Beta 更新会兼容已有偏好，先通过真实使用反馈稳定视觉接口
 
 ## 安装
 
-PowerShell 一键安装助手（内部仍调用 DSH 官方插件命令）：
-
-```powershell
-irm 'https://github.com/WSL043/dsh-reasoning-slider/releases/latest/download/install.ps1' | iex
-```
-
-也可以直接运行官方 DSH 命令：
+直接运行 DSH 标准命令：
 
 ```sh
 dsh plugin --profile web add dsh-reasoning-slider

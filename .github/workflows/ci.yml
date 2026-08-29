@@ -20,7 +20,6 @@ jobs:
       behavior: ${{ steps.plan.outputs.behavior }}
       delivery: ${{ steps.plan.outputs.delivery }}
       demo: ${{ steps.plan.outputs.demo }}
-      installer: ${{ steps.plan.outputs.installer }}
       official: ${{ steps.plan.outputs.official }}
     steps:
       - uses: actions/checkout@v7
@@ -84,16 +83,6 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build:demo
       - run: git diff --exit-code -- docs
-
-  windows-installer:
-    needs: plan
-    if: needs.plan.outputs.installer == 'true'
-    runs-on: windows-2025
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with: { node-version: 24, package-manager-cache: false }
-      - run: node --test tests/windows-installer.test.mjs
 
   official-dsh:
     name: Official DSH end-to-end acceptance

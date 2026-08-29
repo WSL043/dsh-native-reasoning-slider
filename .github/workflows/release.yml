@@ -73,15 +73,11 @@ jobs:
         run: |
           mkdir -p .candidate
           cp .artifacts/dsh-reasoning-slider-${{ needs.preflight.outputs.version }}.tgz .candidate/dsh-reasoning-slider.tgz
-          cp install.ps1 .candidate/install.ps1
           test -s .candidate/dsh-reasoning-slider.tgz
-          test -s .candidate/install.ps1
       - uses: actions/upload-artifact@v7
         with:
           name: release-candidate-${{ github.sha }}
-          path: |
-            .candidate/dsh-reasoning-slider.tgz
-            .candidate/install.ps1
+          path: .candidate/dsh-reasoning-slider.tgz
           if-no-files-found: error
 
   windows:
@@ -147,12 +143,6 @@ jobs:
 
           ## Install
 
-          ```powershell
-          irm 'https://github.com/WSL043/dsh-reasoning-slider/releases/latest/download/install.ps1' | iex
-          ```
-
-          Or use the official command:
-
           ```sh
           dsh plugin --profile web add dsh-reasoning-slider
           ```
@@ -164,12 +154,6 @@ jobs:
           - 软件包更名为 `dsh-reasoning-slider`，已有模式与配色偏好会自动迁移。
           - 能量滑块为浅色和深色界面分别提供效果色与轨道底色。
           - 支持全部模型共用配色或按模型保存，同时保持简洁且识别模型能力的强度控制。
-
-          ```powershell
-          irm 'https://github.com/WSL043/dsh-reasoning-slider/releases/latest/download/install.ps1' | iex
-          ```
-
-          或直接使用官方命令：
 
           ```sh
           dsh plugin --profile web add dsh-reasoning-slider
@@ -183,7 +167,7 @@ jobs:
           RELEASE_TAG: ${{ needs.preflight.outputs.tag }}
         shell: bash
         run: |
-          gh release create "$RELEASE_TAG" .candidate/dsh-reasoning-slider.tgz .candidate/install.ps1 \
+          gh release create "$RELEASE_TAG" .candidate/dsh-reasoning-slider.tgz \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "DSH Reasoning Slider $RELEASE_TAG" \
             --notes-file .candidate/release.md --latest
 

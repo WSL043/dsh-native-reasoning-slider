@@ -76,14 +76,7 @@ Try the same production renderer on the [interactive experience page](https://ws
 
 ## Install
 
-Beginner-friendly PowerShell helper (it still installs through DSH's official
-plugin command):
-
-```powershell
-irm 'https://github.com/WSL043/dsh-reasoning-slider/releases/latest/download/install.ps1' | iex
-```
-
-Or use the official DSH command directly:
+Use the standard DSH command:
 
 ```sh
 dsh plugin --profile web add dsh-reasoning-slider

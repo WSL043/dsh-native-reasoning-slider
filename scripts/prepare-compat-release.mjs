@@ -115,17 +115,9 @@ async function prepare(root, candidate) {
   const update = planCompatibilityUpdate({ compatibility, manifest }, candidate)
   if (update === null) return { changed: false, dshVersion: candidate, pluginVersion: manifest.version }
 
-  const installerPath = resolve(root, 'install.ps1')
-  const installer = await readFile(installerPath, 'utf8')
-  const nextInstaller = installer
-    .replaceAll(`@${update.previousPluginVersion}`, `@${update.pluginVersion}`)
-    .replaceAll(`@${update.previousDshVersion}`, `@${update.dshVersion}`)
-  if (nextInstaller === installer) throw new Error('bounded installer versions were not updated')
-
   await Promise.all([
     writeFile(compatibilityPath, `${JSON.stringify(update.compatibility, null, 2)}\n`),
     writeFile(manifestPath, `${JSON.stringify(update.manifest, null, 2)}\n`),
-    writeFile(installerPath, nextInstaller),
   ])
   return { changed: true, ...update }
 }

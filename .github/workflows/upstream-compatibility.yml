@@ -163,7 +163,7 @@ jobs:
           ! gh release view "v$PLUGIN_VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add -- compatibility.json install.ps1 package.json pnpm-lock.yaml pnpm-workspace.yaml
+          git add -- compatibility.json package.json pnpm-lock.yaml pnpm-workspace.yaml
           git commit -m "chore: support DSH $DSH_VERSION"
           git push origin HEAD:main
           request_id="compat-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
