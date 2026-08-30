@@ -444,9 +444,8 @@ function PluginSettings({ t }) {
 }
 
 export function apply(ctx) {
-  const modelDirectories = ctx.get('modelDirectories')
   const sessions = ctx.get('sessions')
-  if (modelDirectories === undefined || sessions === undefined) return
+  if (ctx.get('modelDirectories') === undefined || sessions === undefined) return
   ctx.effect(() => {
     const style = document.createElement('style'); style.dataset.plugin = name; style.textContent = CSS; document.head.appendChild(style)
     return () => style.remove()
@@ -454,7 +453,8 @@ export function apply(ctx) {
   ctx.effect(() => ctx.locale.register(name, LOCALES), `${name}: dictionaries`)
   const t = ctx.locale.bind(name)
   ctx.slots.inject(SETTINGS_SLOT, () => ctx.slots.register({ name: SETTINGS_SLOT, id: 'reasoning-effort', order: 26, label: () => t('settingsNav') }, () => <PluginSettings t={t} />))
-  ctx.slots.inject(SLOT, () => {
+  const installModelSeat = scope => scope.slots.inject(SLOT, () => {
+    const modelDirectories = scope.get('modelDirectories')
     let disposeModelSeat
     const syncModelSeat = () => {
       if (modeStore.getSnapshot() === 'official') { disposeModelSeat?.(); disposeModelSeat = undefined; return }
@@ -480,6 +480,8 @@ export function apply(ctx) {
     const unsubscribe = modeStore.subscribe(syncModelSeat)
     return () => { unsubscribe(); disposeModelSeat?.() }
   })
+  if (ctx.get('remote.session') === undefined) installModelSeat(ctx)
+  else ctx.inject(['remote.session'], installModelSeat)
   ctx.effect(() => {
     const syncStorage = event => {
       if (event.key === STORAGE_KEY) modeStore.set(event.newValue, false)

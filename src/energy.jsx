@@ -67,8 +67,10 @@ void main(){
   float settledStrength=mix(0.68,1.0,u_intensity);
   float settledSparsity=step(mix(0.78,0.62,u_intensity),settledFrameNoise);
   float settledPulse=0.84+sin(u_time*4.4+randomValue*6.283)*0.16;
-  float settledCells=(settledCore+settledAura*0.34*settledSparsity)
-    *(0.58+randomValue*0.42)*settledPulse*cellMask*leftFade*settledLitSide*charged*settledStrength;
+  float settledThemeContrast=mix(1.0,1.45,u_light);
+  float settledAuraWeight=mix(0.34,0.62,u_light);
+  float settledCells=(settledCore+settledAura*settledAuraWeight*settledSparsity)
+    *(0.58+randomValue*0.42)*settledPulse*cellMask*leftFade*settledLitSide*charged*settledStrength*settledThemeContrast;
   vec3 settledCoreColor=mix(vec3(1.0,0.94,0.98),u_color,u_light);
   vec3 settledColor=mix(u_color,settledCoreColor,settledCore*0.62);
 

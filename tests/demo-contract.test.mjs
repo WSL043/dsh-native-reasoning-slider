@@ -33,13 +33,13 @@ test('interactive demo reuses the production energy renderer and stays provider 
 })
 
 test('GitHub Pages deploys the built demo and public docs link it', async () => {
-  const [workflow, readme, readmeZh] = await Promise.all([
+  const [workflow, readme, readmeEn] = await Promise.all([
     readFile(new URL('.github/workflows/pages.yml', root), 'utf8'),
     readFile(new URL('README.md', root), 'utf8'),
-    readFile(new URL('README.zh-CN.md', root), 'utf8'),
+    readFile(new URL('README.en.md', root), 'utf8'),
   ])
   assert.match(workflow, /deploy-pages/u)
   assert.match(workflow, /build:demo/u)
   assert.match(readme, /wsl043\.github\.io\/dsh-reasoning-slider/u)
-  assert.match(readmeZh, /wsl043\.github\.io\/dsh-reasoning-slider/u)
+  assert.match(readmeEn, /wsl043\.github\.io\/dsh-reasoning-slider/u)
 })
