@@ -1,3 +1,6 @@
+> [!IMPORTANT]
+> 本项目已于 2026 年 8 月 31 日停止主动开发并进入只读归档。现有 Release、交互演示和源码继续保留，但不会再适配未来的 DSH 版本。当前 DSH 已在模型菜单中原生提供模型声明的推理档位；可运行 `dsh plugin --profile web remove dsh-reasoning-slider` 返回官方控件。
+
 <div align="center">
 
 # DSH 推理滑杆

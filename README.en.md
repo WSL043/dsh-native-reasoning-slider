@@ -1,3 +1,6 @@
+> [!IMPORTANT]
+> Active development ended on August 31, 2026, and this repository is now archived read-only. Existing releases, the interactive demo, and source remain available, but future DSH versions will not be supported. Current DSH releases provide the model-advertised reasoning levels in the native model menu. Run `dsh plugin --profile web remove dsh-reasoning-slider` to return to that control.
+
 <div align="center">
 
 # DSH Reasoning Slider
