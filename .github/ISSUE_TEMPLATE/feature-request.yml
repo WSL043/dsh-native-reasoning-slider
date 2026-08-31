@@ -1,0 +1,26 @@
+name: Feature request
+description: Suggest a focused improvement to the reasoning control experience
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Use case
+      description: What are you trying to accomplish, and when does this need arise?
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: Describe the smallest interaction and outcome that would solve the need.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Optional. Link examples or explain your current workaround.
